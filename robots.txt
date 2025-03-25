@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: 
+Sitemap: https://luckyfuture.top/sitemap.xml

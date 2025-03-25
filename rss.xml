@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0"
+  xmlns:atom="http://www.w3.org/2005/Atom"
+  xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Lucky Future的技术栈</title>
+    <link>http://luckyfuture.top/</link>
+    
+    <image>
+      <url>http://luckyfuture.top/icon.png</url>
+      <title>Lucky Future的技术栈</title>
+      <link>http://luckyfuture.top/</link>
+    </image>
+    
+    <atom:link href="http://luckyfuture.top/rss.xml" rel="self" type="application/rss+xml"/>
+    
+    <description>欢迎来到lucky future的技术栈，专注移动安全与渗透测试</description>
+    <pubDate>Tue, 25 Mar 2025 15:36:09 GMT</pubDate>
+    <generator>http://hexo.io/</generator>
+    
+    <item>
+      <title>研究生三年我都做了什么</title>
+      <link>http://luckyfuture.top/yanjiusheng3year.html</link>
+      <guid>http://luckyfuture.top/yanjiusheng3year.html</guid>
+      <pubDate>Tue, 25 Mar 2025 15:24:58 GMT</pubDate>
+      
+      <description>记录一些事情，解答一些问题，制定一些计划</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E6%97%A5%E8%AE%B0%E9%9A%8F%E6%83%B3/">日记随想</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/yanjiusheng3year.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>Hello World</title>
+      <link>http://luckyfuture.top/hello-world.html</link>
+      <guid>http://luckyfuture.top/hello-world.html</guid>
+      <pubDate>Sun, 23 Jun 2024 08:27:53 GMT</pubDate>
+      
+        
+        
+          
+          
+      <description>&lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.io/docs/&quot;&gt;documentation&lt;/a&gt;</description>
+          
+        
+      
+      
+      
+      
+      
+      
+      <comments>http://luckyfuture.top/hello-world.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>栈和函数调用(详细版)</title>
+      <link>http://luckyfuture.top/StackAndFuncCall.html</link>
+      <guid>http://luckyfuture.top/StackAndFuncCall.html</guid>
+      <pubDate>Fri, 23 Sep 2022 16:04:28 GMT</pubDate>
+      
+      <description>结合实例详细介绍栈和栈指针在函数调用中的操作</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/CTF-Pwn/">CTF-Pwn</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/StackAndFuncCall.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>搭建SSH隧道绕过防火墙</title>
+      <link>http://luckyfuture.top/ssh-tunnel.html</link>
+      <guid>http://luckyfuture.top/ssh-tunnel.html</guid>
+      <pubDate>Thu, 04 Aug 2022 19:12:40 GMT</pubDate>
+      
+      <description>使用SSH隧道绕过企业防火墙审计</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8/">工具使用</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/ssh-tunnel.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>SQL注入总结</title>
+      <link>http://luckyfuture.top/sqli-summary.html</link>
+      <guid>http://luckyfuture.top/sqli-summary.html</guid>
+      <pubDate>Thu, 30 Jun 2022 14:38:51 GMT</pubDate>
+      
+      <description>彻底理解sql注入漏洞</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/">渗透测试</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/sqli-summary.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>SRC漏洞挖掘思路</title>
+      <link>http://luckyfuture.top/HoleDigging.html</link>
+      <guid>http://luckyfuture.top/HoleDigging.html</guid>
+      <pubDate>Tue, 28 Jun 2022 14:43:28 GMT</pubDate>
+      
+      <description>个人漏洞挖掘思路整理，作为备忘录使用</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/">渗透测试</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/HoleDigging.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>C语言动态内存分配</title>
+      <link>http://luckyfuture.top/CandCpp-DynamicStorage.html</link>
+      <guid>http://luckyfuture.top/CandCpp-DynamicStorage.html</guid>
+      <pubDate>Fri, 08 Apr 2022 13:23:59 GMT</pubDate>
+      
+      <description>malloc()/free()是C语言的标准库函数，new/delete是C++的运算符</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/">编程语言</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/CandCpp-DynamicStorage.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>从0开始写ShellCode加载器0x5-代码混淆</title>
+      <link>http://luckyfuture.top/BypassAVLearning5.html</link>
+      <guid>http://luckyfuture.top/BypassAVLearning5.html</guid>
+      <pubDate>Wed, 30 Mar 2022 14:47:51 GMT</pubDate>
+      
+      <description>尝试了几种公开的代码混淆，软件壳方案，效果并不理想</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E6%9C%A8%E9%A9%AC%E5%85%8D%E6%9D%80/">木马免杀</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/BypassAVLearning5.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>从0开始写ShellCode加载器0x4-隐藏导入表</title>
+      <link>http://luckyfuture.top/BypassAVLearning4.html</link>
+      <guid>http://luckyfuture.top/BypassAVLearning4.html</guid>
+      <pubDate>Mon, 28 Mar 2022 13:50:20 GMT</pubDate>
+      
+      <description>学习隐藏导入地址表技术</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E6%9C%A8%E9%A9%AC%E5%85%8D%E6%9D%80/">木马免杀</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/BypassAVLearning4.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>从0开始写ShellCode加载器0x3-C++/C指针详解</title>
+      <link>http://luckyfuture.top/CppAndC-Pointer.html</link>
+      <guid>http://luckyfuture.top/CppAndC-Pointer.html</guid>
+      <pubDate>Sat, 26 Mar 2022 14:48:04 GMT</pubDate>
+      
+      <description>详解C++和C指针对变量、数组、函数的操作</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E6%9C%A8%E9%A9%AC%E5%85%8D%E6%9D%80/">木马免杀</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/CppAndC-Pointer.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>从0开始写ShellCode加载器0x2-分离免杀</title>
+      <link>http://luckyfuture.top/BypassAVLearning2.html</link>
+      <guid>http://luckyfuture.top/BypassAVLearning2.html</guid>
+      <pubDate>Thu, 24 Mar 2022 15:06:32 GMT</pubDate>
+      
+      <description>C++实现从文件和web远程加载shellcdoe</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E6%9C%A8%E9%A9%AC%E5%85%8D%E6%9D%80/">木马免杀</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/BypassAVLearning2.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>解决Mscomctl.ocx缺失的问题</title>
+      <link>http://luckyfuture.top/FixMscomctl-ocxMissing.html</link>
+      <guid>http://luckyfuture.top/FixMscomctl-ocxMissing.html</guid>
+      <pubDate>Mon, 14 Mar 2022 13:08:45 GMT</pubDate>
+      
+      <description>解决Mscomctl.ocx文件缺失，以及DllRegisterServer调用失败等问题</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8/">工具使用</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/FixMscomctl-ocxMissing.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>从0开始写ShellCode加载器0x1-Windows内存操作api</title>
+      <link>http://luckyfuture.top/BypassAVLearning.html</link>
+      <guid>http://luckyfuture.top/BypassAVLearning.html</guid>
+      <pubDate>Fri, 04 Mar 2022 11:00:26 GMT</pubDate>
+      
+      <description>windows内存操作api的用法，以及在shllcode加载中的使用</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E6%9C%A8%E9%A9%AC%E5%85%8D%E6%9D%80/">木马免杀</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/BypassAVLearning.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>各语言ShellcodeLoader初探</title>
+      <link>http://luckyfuture.top/ShellcodeLoader.html</link>
+      <guid>http://luckyfuture.top/ShellcodeLoader.html</guid>
+      <pubDate>Fri, 04 Mar 2022 10:52:59 GMT</pubDate>
+      
+      <description>各种语言版本实现shellcode加载，shellcode变形免杀初探</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E6%9C%A8%E9%A9%AC%E5%85%8D%E6%9D%80/">木马免杀</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/ShellcodeLoader.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>在腾讯云上配置clash代理访问Github</title>
+      <link>http://luckyfuture.top/config-clash-on-linux.html</link>
+      <guid>http://luckyfuture.top/config-clash-on-linux.html</guid>
+      <pubDate>Sat, 22 Jan 2022 14:07:35 GMT</pubDate>
+      
+        
+        
+          
+          
+      <description>&lt;p&gt;前些日子在腾讯云上买了一个云服务器，准备拿来搭靶场复现漏洞，结果发现访问不了github。实在是把我难受坏了。扔在一边没再搭理，但是有个公网服务器毕竟是更方便，总拖下去也不是办法，今天开始着手解决这个问题。&lt;/p&gt;
+&lt;p&gt;我的解决方法是使用跨平台的代理软件clash。它能提</description>
+          
+        
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8/">工具使用</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/config-clash-on-linux.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>使用MSF生成ShellCode</title>
+      <link>http://luckyfuture.top/Msfvenom-Gen-ShellCode.html</link>
+      <guid>http://luckyfuture.top/Msfvenom-Gen-ShellCode.html</guid>
+      <pubDate>Fri, 14 Jan 2022 01:39:45 GMT</pubDate>
+      
+      <description>MsfVenom 集成了msfpayload 和msfencode的功能，用于生成各种类型的payload</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8/">工具使用</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/Msfvenom-Gen-ShellCode.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>写在23岁之前</title>
+      <link>http://luckyfuture.top/before-23-years-old.html</link>
+      <guid>http://luckyfuture.top/before-23-years-old.html</guid>
+      <pubDate>Sat, 27 Nov 2021 12:55:06 GMT</pubDate>
+      
+      <description>本科生涯最后一个生日</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E6%97%A5%E8%AE%B0%E9%9A%8F%E6%83%B3/">日记随想</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/before-23-years-old.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>对博客和播客以及Web3.0的一点思考</title>
+      <link>http://luckyfuture.top/blog-and-podcast.html</link>
+      <guid>http://luckyfuture.top/blog-and-podcast.html</guid>
+      <pubDate>Wed, 10 Nov 2021 15:22:46 GMT</pubDate>
+      
+        
+        
+          
+          
+      <description>&lt;p&gt;博客和公众号已经很久没有更新了，上次更新还是在今年三月份。这一年几乎时间都用来准备考研。&lt;/p&gt;
+</description>
+          
+        
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E6%97%A5%E8%AE%B0%E9%9A%8F%E6%83%B3/">日记随想</category>
+      
+      
+      
+      <comments>http://luckyfuture.top/blog-and-podcast.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>Xposed模块开发课后作业</title>
+      <link>http://luckyfuture.top/Xposed-Homework.html</link>
+      <guid>http://luckyfuture.top/Xposed-Homework.html</guid>
+      <pubDate>Wed, 31 Mar 2021 01:38:36 GMT</pubDate>
+      
+      <description>吾爱破解xposed教程课后作业，在原有教程上实现了对系统函数，和类中私有静态变量值的hook</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/Android%E9%80%86%E5%90%91/">Android逆向</category>
+      
+      
+      <category domain="http://luckyfuture.top/tags/Xposed/">Xposed</category>
+      
+      
+      <comments>http://luckyfuture.top/Xposed-Homework.html#disqus_thread</comments>
+      
+    </item>
+    
+    <item>
+      <title>Xposed模块开发入门</title>
+      <link>http://luckyfuture.top/Xposed-First-Hook.html</link>
+      <guid>http://luckyfuture.top/Xposed-First-Hook.html</guid>
+      <pubDate>Mon, 29 Mar 2021 07:35:45 GMT</pubDate>
+      
+      <description>我的第一个Xposed Hook模块</description>
+      
+      
+      
+      
+      <category domain="http://luckyfuture.top/categories/%E7%A7%BB%E5%8A%A8%E5%AE%89%E5%85%A8/">移动安全</category>
+      
+      
+      <category domain="http://luckyfuture.top/tags/Xposed/">Xposed</category>
+      
+      <category domain="http://luckyfuture.top/tags/Hook/">Hook</category>
+      
+      
+      <comments>http://luckyfuture.top/Xposed-First-Hook.html#disqus_thread</comments>
+      
+    </item>
+    
+  </channel>
+</rss>

