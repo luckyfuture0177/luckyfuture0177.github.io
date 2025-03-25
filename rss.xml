@@ -3,19 +3,19 @@
   xmlns:atom="http://www.w3.org/2005/Atom"
   xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>Lucky Future的技术栈</title>
+    <title>Lucky Future的小栈</title>
     <link>http://luckyfuture.top/</link>
     
     <image>
       <url>http://luckyfuture.top/icon.png</url>
-      <title>Lucky Future的技术栈</title>
+      <title>Lucky Future的小栈</title>
       <link>http://luckyfuture.top/</link>
     </image>
     
     <atom:link href="http://luckyfuture.top/rss.xml" rel="self" type="application/rss+xml"/>
     
-    <description>欢迎来到lucky future的技术栈，专注移动安全与渗透测试</description>
-    <pubDate>Tue, 25 Mar 2025 15:36:09 GMT</pubDate>
+    <description>欢迎来到lucky future的小客栈，祝你在这里有所收获</description>
+    <pubDate>Tue, 25 Mar 2025 15:55:27 GMT</pubDate>
     <generator>http://hexo.io/</generator>
     
     <item>
